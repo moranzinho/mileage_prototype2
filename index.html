@@ -363,6 +363,18 @@ function show(id) {
     const el = document.getElementById(i);
     el.style.display = i === id ? (i === 'login-screen' ? 'flex' : 'block') : 'none';
   });
+  if (id === 'login-screen') resetLoginForm();
+}
+
+function resetLoginForm() {
+  const btn = document.getElementById('login-btn');
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+  btn.onclick = signIn;
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-notice').classList.remove('show');
+  document.getElementById('login-notice').textContent = '';
+  document.getElementById('login-password').value = '';
 }
 
 async function signIn() {
@@ -380,7 +392,22 @@ async function signIn() {
   }
 }
 
-async function signOut() { await sb.auth.signOut(); }
+async function signOut() {
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'Signing out…';
+  try {
+    await sb.auth.signOut();
+  } catch(e) {
+    // If signOut throws, force the UI to login screen anyway
+    currentUser = null;
+    trips = [];
+    show('login-screen');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign Out';
+  }
+}
 
 async function resetPassword(e) {
   e.preventDefault();
