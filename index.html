@@ -488,6 +488,66 @@ function fallbackDistance(from, to) {
 
 
 
+
+// ── Via stops ─────────────────────────────────────────────────────────
+function getViaStops() {
+  return Array.from(document.querySelectorAll('.via-input'))
+    .map(i => i.value.trim())
+    .filter(Boolean);
+}
+
+function addViaStop() {
+  const container = document.getElementById('via-stops');
+  const idx = container.children.length + 1;
+  const row = document.createElement('div');
+  row.className = 'via-row';
+  row.innerHTML = `<input type="text" class="via-input" placeholder="Via stop ${idx} — town or Eircode" autocomplete="off">
+    <button class="remove-via-btn" onclick="removeViaStop(this)" title="Remove">&times;</button>`;
+  container.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function removeViaStop(btn) {
+  btn.closest('.via-row').remove();
+  document.querySelectorAll('.via-input').forEach((inp, i) => {
+    inp.placeholder = `Via stop ${i+1} — town or Eircode`;
+  });
+}
+
+function clearViaStops() {
+  document.getElementById('via-stops').innerHTML = '';
+}
+
+function buildWaypoints() {
+  const from = document.getElementById('from-input').value.trim();
+  const to = document.getElementById('to-input').value.trim();
+  const vias = getViaStops();
+  return [from, ...vias, to].filter(Boolean);
+}
+
+async function calcMultiLegDistance(waypoints) {
+  let total = 0;
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const origin = waypoints[i] + ', Ireland';
+    const dest = waypoints[i+1] + ', Ireland';
+    try {
+      const km = await getDistanceGoogle(origin, dest);
+      total += km;
+    } catch(e) {
+      const km = fallbackDistance(waypoints[i], waypoints[i+1]);
+      if (!km) throw new Error(`Could not calculate: ${waypoints[i]} to ${waypoints[i+1]}`);
+      total += km;
+    }
+  }
+  return Math.round(total * 10) / 10;
+}
+
+function buildRouteLabel(waypoints) {
+  if (waypoints.length === 2) return `${waypoints[0]} → ${waypoints[1]}`;
+  const via = waypoints.slice(1, -1).join(', ');
+  return `${waypoints[0]} → ${waypoints[waypoints.length-1]} via ${via}`;
+}
+
 async function addTrip() {
   const waypoints = buildWaypoints();
   const from = document.getElementById('from-input').value.trim();
