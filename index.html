@@ -835,19 +835,16 @@ function attachLocationFormatter(input) {
   input.addEventListener('blur', () => formatLocationInput(input));
 }
 
-// Attach to static inputs
+// Attach to main form static inputs
 attachLocationFormatter(document.getElementById('from-input'));
 attachLocationFormatter(document.getElementById('to-input'));
-attachLocationFormatter(document.getElementById('edit-from'));
-attachLocationFormatter(document.getElementById('edit-to'));
 
-// Attach to dynamically added via inputs via delegation
+// Attach to dynamically added via inputs via delegation on main form
 document.getElementById('via-stops').addEventListener('blur', e => {
   if (e.target.classList.contains('via-input')) formatLocationInput(e.target);
 }, true);
-document.getElementById('edit-via-stops').addEventListener('blur', e => {
-  if (e.target.classList.contains('edit-via-input')) formatLocationInput(e.target);
-}, true);
+
+// Edit modal formatters are attached when the modal opens (see openEditModal)
 
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
@@ -863,6 +860,17 @@ function openEditModal(trip) {
   container.innerHTML = '';
   (trip.via_stops || []).forEach(stop => addEditViaStop(stop));
   document.getElementById('edit-modal').classList.add('open');
+  // Attach location formatters to edit modal inputs (safe to do here as elements exist)
+  attachLocationFormatter(document.getElementById('edit-from'));
+  attachLocationFormatter(document.getElementById('edit-to'));
+  // Via stop inputs get formatter via blur delegation on the container
+  const editViaContainer = document.getElementById('edit-via-stops');
+  if (!editViaContainer._formatterAttached) {
+    editViaContainer.addEventListener('blur', e => {
+      if (e.target.classList.contains('edit-via-input')) formatLocationInput(e.target);
+    }, true);
+    editViaContainer._formatterAttached = true;
+  }
 }
 
 function closeEditModal() {
