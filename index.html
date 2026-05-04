@@ -630,6 +630,10 @@ function buildRouteLabel(waypoints) {
 }
 
 async function addTrip() {
+  // Normalise all location inputs before saving
+  document.getElementById('from-input').value = formatLocation(document.getElementById('from-input').value);
+  document.getElementById('to-input').value = formatLocation(document.getElementById('to-input').value);
+  document.querySelectorAll('.via-input').forEach(i => { i.value = formatLocation(i.value); });
   const waypoints = buildWaypoints();
   const from = document.getElementById('from-input').value.trim();
   const to = document.getElementById('to-input').value.trim();
@@ -729,6 +733,36 @@ function updateFilter() {
   if (months.includes(cur)) sel.value=cur;
 }
 
+
+// ── Location formatting ───────────────────────────────────────────────
+function isEircode(input) {
+  // Eircode format: letter + 2 digits + space (optional) + 4 alphanumeric chars
+  // e.g. D02 XY00, R51CD89, t12ab34
+  return /^[A-Za-z]\d{2}\s*[A-Za-z0-9]{4}$/.test(input.trim());
+}
+
+function formatLocation(input) {
+  const s = input.trim();
+  if (!s) return s;
+  if (isEircode(s)) {
+    // Uppercase and split: first 3 chars (routing key) + space + last 4 chars
+    const clean = s.toUpperCase().replace(/\s+/g, '');
+    return clean.slice(0, 3) + ' ' + clean.slice(3);
+  }
+  // Title case: capitalise first letter of each word
+  return s.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatLocationInput(input) {
+  const formatted = formatLocation(input.value);
+  if (formatted !== input.value) {
+    const pos = input.selectionStart;
+    input.value = formatted;
+    // Restore cursor position approximately
+    try { input.setSelectionRange(pos, pos); } catch(e) {}
+  }
+}
+
 function renderTrips() {
   const container=document.getElementById('trips-container');
   const filter=document.getElementById('month-filter').value;
@@ -795,6 +829,25 @@ async function saveRate() {
 
 document.getElementById('date-input').value=todayISO();
 document.getElementById('from-input').value='R51CD89';
+
+// Format location inputs on blur (main form + via stops + edit modal)
+function attachLocationFormatter(input) {
+  input.addEventListener('blur', () => formatLocationInput(input));
+}
+
+// Attach to static inputs
+attachLocationFormatter(document.getElementById('from-input'));
+attachLocationFormatter(document.getElementById('to-input'));
+attachLocationFormatter(document.getElementById('edit-from'));
+attachLocationFormatter(document.getElementById('edit-to'));
+
+// Attach to dynamically added via inputs via delegation
+document.getElementById('via-stops').addEventListener('blur', e => {
+  if (e.target.classList.contains('via-input')) formatLocationInput(e.target);
+}, true);
+document.getElementById('edit-via-stops').addEventListener('blur', e => {
+  if (e.target.classList.contains('edit-via-input')) formatLocationInput(e.target);
+}, true);
 
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
@@ -879,6 +932,10 @@ function getEditViaStops() {
 
 async function saveEditTrip() {
   const id = document.getElementById('edit-trip-id').value;
+  // Normalise all location inputs before saving
+  document.getElementById('edit-from').value = formatLocation(document.getElementById('edit-from').value);
+  document.getElementById('edit-to').value = formatLocation(document.getElementById('edit-to').value);
+  document.querySelectorAll('.edit-via-input').forEach(i => { i.value = formatLocation(i.value); });
   const from = document.getElementById('edit-from').value.trim();
   const to = document.getElementById('edit-to').value.trim();
   const date = document.getElementById('edit-date').value;
