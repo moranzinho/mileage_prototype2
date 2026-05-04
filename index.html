@@ -151,12 +151,6 @@
   .btn-pri { background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer; color: #fff; }
   .btn-pri:hover { background: #235c42; }
 
-  /* ── API key setup banner ── */
-  .api-banner { background: #FFF8E8; border: 1px solid #F0C060; border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: 13px; color: #7A5500; line-height: 1.6; display: none; }
-  .api-banner.show { display: block; }
-  .api-banner strong { font-weight: 600; }
-  .api-banner code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 12px; }
-
   /* ── Export ── */
   .export-btn { font-size: 12px; color: var(--ink2); background: none; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 4px 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
   .export-btn:hover { background: var(--surface2); }
@@ -186,13 +180,6 @@
         <span id="rate-display">€0.00 / km</span>
       </button>
     </div>
-  </div>
-
-  <!-- API key warning (shown when key is missing) -->
-  <div class="api-banner" id="api-banner">
-    <strong>Distance calculation not active.</strong> To enable accurate road distances via Google Maps,
-    add your API key as an environment variable named <code>VITE_GOOGLE_MAPS_KEY</code> in your
-    Vercel project settings (Settings → Environment Variables). Until then, straight-line estimates are used.
   </div>
 
   <!-- Stats -->
@@ -291,14 +278,9 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────────────────
-// When deployed to Vercel, set VITE_GOOGLE_MAPS_KEY in Environment Variables.
-// Vite exposes it as import.meta.env.VITE_GOOGLE_MAPS_KEY at build time.
-// For plain HTML deployment, set window.GOOGLE_MAPS_KEY before this script,
-// or Vercel will inject it via a _headers or middleware approach.
-// The fallback below uses straight-line estimation when no key is present.
-const MAPS_KEY = (typeof import_meta_env !== 'undefined' && import_meta_env.VITE_GOOGLE_MAPS_KEY)
-  || window.GOOGLE_MAPS_KEY
-  || '';
+// Distance is calculated via /api/distance (Vercel serverless function).
+// Your Google Maps API key lives there — never in this file.
+// Set GOOGLE_MAPS_KEY in Vercel → Settings → Environment Variables.
 
 const STORAGE_KEY = 'mileage-trips-v2';
 const RATE_KEY    = 'mileage-rate-v2';
@@ -331,16 +313,12 @@ const monthLabel = k => {
 
 // ── Distance: Google Distance Matrix API ─────────────────────────────
 async function getDistanceGoogle(origin, destination) {
-  // Uses a CORS proxy approach — for production Vercel deploy, use a
-  // Vercel serverless function (/api/distance) to keep the key server-side.
-  // This direct call works for local testing with key restrictions disabled.
-  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&region=ie&units=metric&key=${MAPS_KEY}`;
+  // Calls our Vercel serverless function which keeps the API key server-side.
+  const url = `/api/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
   const res = await fetch(url);
   const data = await res.json();
-  if (data.status === 'OK' && data.rows[0].elements[0].status === 'OK') {
-    return data.rows[0].elements[0].distance.value / 1000; // metres → km
-  }
-  throw new Error(data.rows?.[0]?.elements?.[0]?.status || data.status);
+  if (!res.ok) throw new Error(data.error || 'API error');
+  return data.distanceKm;
 }
 
 // ── Distance: Straight-line fallback ─────────────────────────────────
@@ -433,15 +411,10 @@ async function calcDistance(from, to) {
   let km = null;
   let method = '';
 
-  if (MAPS_KEY) {
-    try {
-      km = await getDistanceGoogle(from + ', Ireland', to + ', Ireland');
-      method = 'road distance';
-    } catch(e) {
-      km = fallbackDistance(from, to);
-      method = 'estimated';
-    }
-  } else {
+  try {
+    km = await getDistanceGoogle(from + ', Ireland', to + ', Ireland');
+    method = 'road distance';
+  } catch(e) {
     km = fallbackDistance(from, to);
     method = 'estimated';
   }
@@ -471,12 +444,8 @@ async function addTrip() {
   let km = previewKm;
   if (!km) {
     setStatus('Calculating…', 'loading', true);
-    if (MAPS_KEY) {
-      try { km = await getDistanceGoogle(from+', Ireland', to+', Ireland'); }
-      catch(e) { km = fallbackDistance(from, to); }
-    } else {
-      km = fallbackDistance(from, to);
-    }
+    try { km = await getDistanceGoogle(from+', Ireland', to+', Ireland'); }
+    catch(e) { km = fallbackDistance(from, to); }
   }
 
   document.getElementById('add-btn').disabled = false;
@@ -532,7 +501,7 @@ function render() {
   updateFilter();
   renderTrips();
   document.getElementById('rate-display').textContent = `€${rate.toFixed(4)} / km`;
-  document.getElementById('api-banner').classList.toggle('show', !MAPS_KEY);
+  // api-banner removed — key is always server-side
 }
 
 function updateStats() {
