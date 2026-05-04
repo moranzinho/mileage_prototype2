@@ -144,10 +144,15 @@
 
 
   .via-section { margin-top: 10px; }
-  .via-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .via-row { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px; cursor: default; border-radius: var(--radius-sm); transition: background 0.1s; }
+  .via-row.drag-over { background: var(--accent-light); border: 1.5px dashed var(--accent); border-radius: var(--radius-sm); }
+  .via-row.dragging { opacity: 0.4; }
   .via-row input { width: 100%; background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: 'Montserrat', sans-serif; color: var(--ink); outline: none; height: 36px; font-weight: 500; transition: border-color 0.15s, box-shadow 0.15s; }
   .via-row input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--accent-light); }
   .via-row input::placeholder { color: var(--ink3); font-weight: 400; }
+  .drag-handle { cursor: grab; color: var(--ink3); display: flex; flex-direction: column; gap: 2px; align-items: center; justify-content: center; height: 36px; padding: 0 2px; user-select: none; flex-shrink: 0; }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle span { display: block; width: 12px; height: 2px; background: currentColor; border-radius: 1px; }
   .remove-via-btn { width: 28px; height: 28px; background: none; border: 1px solid var(--border-strong); border-radius: 50%; cursor: pointer; color: var(--ink3); font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
   .remove-via-btn:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-light); }
   .add-via-btn { display: inline-flex; align-items: center; gap: 5px; background: none; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 11px; font-weight: 600; color: var(--ink3); cursor: pointer; font-family: 'Montserrat', sans-serif; letter-spacing: 0.03em; text-transform: uppercase; transition: all 0.15s; margin-top: 2px; }
@@ -162,7 +167,9 @@
   .edit-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .edit-modal-grid .field { margin-bottom: 0; }
   .edit-via-section { margin-bottom: 12px; }
-  .edit-via-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .edit-via-row { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px; border-radius: var(--radius-sm); transition: background 0.1s; }
+  .edit-via-row.drag-over { background: var(--accent-light); border: 1.5px dashed var(--accent); }
+  .edit-via-row.dragging { opacity: 0.4; }
   .edit-via-row input { width: 100%; background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: 'Montserrat', sans-serif; color: var(--ink); outline: none; height: 34px; font-weight: 500; }
   .edit-via-row input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--accent-light); }
   .edit-modal-sub { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink3); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
@@ -513,24 +520,77 @@ function getViaStops() {
     .filter(Boolean);
 }
 
+function makeDragHandle() {
+  const h = document.createElement('div');
+  h.className = 'drag-handle';
+  h.title = 'Drag to reorder';
+  h.innerHTML = '<span></span><span></span><span></span>';
+  return h;
+}
+
+function initDragRow(row, container) {
+  row.draggable = true;
+  row.addEventListener('dragstart', e => {
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  });
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+    container.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+    renumberViaStops(container);
+  });
+  row.addEventListener('dragover', e => {
+    e.preventDefault();
+    const dragging = container.querySelector('.dragging');
+    if (dragging && dragging !== row) {
+      row.classList.add('drag-over');
+      const rows = [...container.children];
+      const fromIdx = rows.indexOf(dragging);
+      const toIdx = rows.indexOf(row);
+      if (fromIdx < toIdx) container.insertBefore(dragging, row.nextSibling);
+      else container.insertBefore(dragging, row);
+    }
+  });
+  row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+  row.addEventListener('drop', e => { e.preventDefault(); row.classList.remove('drag-over'); });
+}
+
+function renumberViaStops(container) {
+  container.querySelectorAll('input').forEach((inp, i) => {
+    inp.placeholder = `Via stop ${i+1} — town or Eircode`;
+  });
+}
+
 function addViaStop() {
   const container = document.getElementById('via-stops');
-  const idx = container.children.length + 1;
   const row = document.createElement('div');
   row.className = 'via-row';
-  row.innerHTML = `<input type="text" class="via-input" placeholder="Via stop ${idx} — town or Eircode" autocomplete="off">
-    <button class="remove-via-btn" onclick="removeViaStop(this)" title="Remove">&times;</button>`;
+  const handle = makeDragHandle();
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'via-input';
+  input.placeholder = `Via stop ${container.children.length + 1} — town or Eircode`;
+  input.autocomplete = 'off';
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-via-btn';
+  removeBtn.innerHTML = '&times;';
+  removeBtn.title = 'Remove';
+  removeBtn.onclick = () => { row.remove(); renumberViaStops(container); };
+  row.appendChild(handle);
+  row.appendChild(input);
+  row.appendChild(removeBtn);
+  initDragRow(row, container);
   container.appendChild(row);
-  row.querySelector('input').focus();
+  input.focus();
   // Disable return journey when adding a via stop
   document.getElementById('return-toggle').checked = false;
 }
 
 function removeViaStop(btn) {
+  const container = document.getElementById('via-stops');
   btn.closest('.via-row').remove();
-  document.querySelectorAll('.via-input').forEach((inp, i) => {
-    inp.placeholder = `Via stop ${i+1} — town or Eircode`;
-  });
+  renumberViaStops(container);
 }
 
 function clearViaStops() {
@@ -763,22 +823,52 @@ function handleEditModalClick(e) {
 function addEditViaStop(value) {
   value = value || '';
   const container = document.getElementById('edit-via-stops');
-  const idx = container.children.length + 1;
   const row = document.createElement('div');
   row.className = 'edit-via-row';
+  const handle = makeDragHandle();
   const input = document.createElement('input');
   input.type = 'text';
   input.className = 'edit-via-input';
-  input.placeholder = 'Via stop ' + idx;
+  input.placeholder = 'Via stop ' + (container.children.length + 1);
   input.autocomplete = 'off';
   input.value = value;
   const btn = document.createElement('button');
   btn.className = 'remove-via-btn';
   btn.innerHTML = '&times;';
   btn.title = 'Remove';
-  btn.onclick = function() { row.remove(); };
+  btn.onclick = function() {
+    row.remove();
+    container.querySelectorAll('input').forEach((inp, i) => { inp.placeholder = 'Via stop ' + (i+1); });
+  };
+  row.appendChild(handle);
   row.appendChild(input);
   row.appendChild(btn);
+  // Reuse same drag logic with edit container
+  row.draggable = true;
+  row.addEventListener('dragstart', e => {
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  });
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+    container.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+    container.querySelectorAll('input').forEach((inp, i) => { inp.placeholder = 'Via stop ' + (i+1); });
+  });
+  row.addEventListener('dragover', e => {
+    e.preventDefault();
+    const dragging = container.querySelector('.dragging');
+    if (dragging && dragging !== row) {
+      row.classList.add('drag-over');
+      const rows = [...container.children];
+      const fromIdx = rows.indexOf(dragging);
+      const toIdx = rows.indexOf(row);
+      if (fromIdx < toIdx) container.insertBefore(dragging, row.nextSibling);
+      else container.insertBefore(dragging, row);
+    }
+  });
+  row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+  row.addEventListener('drop', e => { e.preventDefault(); row.classList.remove('drag-over'); });
   container.appendChild(row);
 }
 
