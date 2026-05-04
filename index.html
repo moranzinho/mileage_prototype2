@@ -522,6 +522,8 @@ function addViaStop() {
     <button class="remove-via-btn" onclick="removeViaStop(this)" title="Remove">&times;</button>`;
   container.appendChild(row);
   row.querySelector('input').focus();
+  // Disable return journey when adding a via stop
+  document.getElementById('return-toggle').checked = false;
 }
 
 function removeViaStop(btn) {
