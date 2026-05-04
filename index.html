@@ -628,6 +628,14 @@ function buildWaypoints() {
   const from = document.getElementById('from-input').value.trim();
   const to = document.getElementById('to-input').value.trim();
   const vias = getViaStops();
+  // Resolve aliases to eircodes for distance calculation
+  return [from, ...vias, to].filter(Boolean).map(resolveForDistance);
+}
+
+function buildDisplayWaypoints() {
+  const from = document.getElementById('from-input').value.trim();
+  const to = document.getElementById('to-input').value.trim();
+  const vias = getViaStops();
   return [from, ...vias, to].filter(Boolean);
 }
 
@@ -677,12 +685,13 @@ async function addTrip() {
   const { total: baseKm, legs: legDistances } = calcResult;
   const distance = isReturn ? Math.round(baseKm*2*10)/10 : baseKm;
   const legDists = isReturn ? legDistances.map(l => Math.round(l*2*10)/10) : legDistances;
+  const displayWaypoints = buildDisplayWaypoints();
   const viaStops = getViaStops();
-  const routeLabel = buildRouteLabel(waypoints);
+  const routeLabel = buildRouteLabel(displayWaypoints);
   try {
     const saved = await saveTrip({ from, to, viaStops, routeLabel, legDistances: legDists, date, isReturn, distance, cost: Math.round(distance*rate*100)/100, rate });
     trips.unshift(saved);
-    document.getElementById('from-input').value = 'R51CD89';
+    document.getElementById('from-input').value = 'AMOVE';
     document.getElementById('to-input').value = '';
     document.getElementById('return-toggle').checked = true;
     clearViaStops();
@@ -768,16 +777,34 @@ function isEircode(input) {
   return /^[A-Za-z]\d{2}\s*[A-Za-z0-9]{4}$/.test(input.trim());
 }
 
+// Locations that map to a canonical display name + eircode
+const LOCATION_ALIASES = {
+  'amove': { display: 'AMOVE', eircode: 'R51 CD89' },
+};
+
+function resolveAlias(s) {
+  return LOCATION_ALIASES[s.trim().toLowerCase()] || null;
+}
+
 function formatLocation(input) {
   const s = input.trim();
   if (!s) return s;
+  // Check aliases first (e.g. "amove" -> "AMOVE")
+  const alias = resolveAlias(s);
+  if (alias) return alias.display;
   if (isEircode(s)) {
-    // Uppercase and split: first 3 chars (routing key) + space + last 4 chars
     const clean = s.toUpperCase().replace(/\s+/g, '');
     return clean.slice(0, 3) + ' ' + clean.slice(3);
   }
   // Title case: capitalise first letter of each word
   return s.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// Resolve display name to eircode for distance calculation
+function resolveForDistance(location) {
+  const alias = resolveAlias(location);
+  if (alias) return alias.eircode;
+  return location;
 }
 
 function formatLocationInput(input) {
@@ -855,7 +882,7 @@ async function saveRate() {
 }
 
 document.getElementById('date-input').value=todayISO();
-document.getElementById('from-input').value='R51CD89';
+document.getElementById('from-input').value='AMOVE';
 
 // Format location inputs on blur (main form + via stops + edit modal)
 function attachLocationFormatter(input) {
@@ -981,7 +1008,8 @@ async function saveEditTrip() {
   if (!from || !to || !date) { errEl.textContent = 'Please fill in From, To and Date.'; return; }
   const btn = document.getElementById('edit-save-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
-  const waypoints = [from, ...viaStops, to];
+  const waypoints = [from, ...viaStops, to].map(resolveForDistance);
+  const displayWaypoints = [from, ...viaStops, to];
   let calcResult;
   try { calcResult = await calcMultiLegDistance(waypoints); }
   catch(e) { errEl.textContent = 'Could not calculate distance — check locations.'; btn.disabled=false; btn.textContent='Save changes'; return; }
@@ -992,7 +1020,7 @@ async function saveEditTrip() {
   const { data, error } = await sb.from('trips').update({
     from_location: from, to_location: to,
     via_stops: viaStops,
-    route_label: buildRouteLabel(waypoints),
+    route_label: buildRouteLabel(displayWaypoints),
     leg_distances: legDists,
     date, is_return: isReturn,
     distance_km: distance, cost, rate_used: rate,
