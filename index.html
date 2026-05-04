@@ -3,188 +3,130 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mileage Logger</title>
+<title>AMOVE Mileage Logger</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Montserrat:wght@400;500;600;700&display=swap');
-
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    /* AMOVE Brand — Blue palette */
-    --bg: #F2F5F8;
-    --surface: #FFFFFF;
-    --surface2: #E8EDF2;
-    --ink: #1A2733;
-    --ink2: #4A5F72;
-    --ink3: #8FA3B3;
-    --accent: #00acc8;        /* AMOVE steel blue */
-    --accent-dark: #0090a8;
-    --accent-light: #e0f6fa;
-    --accent-mid: #33bdd4;
-    --border: rgba(26,39,51,0.08);
-    --border-strong: rgba(26,39,51,0.15);
-    --danger: #B94040;
-    --danger-light: #FAEAEA;
-    --radius: 8px;
-    --radius-sm: 5px;
+    --bg: #F2F5F8; --surface: #FFFFFF; --surface2: #E8EDF2;
+    --ink: #1A2733; --ink2: #4A5F72; --ink3: #8FA3B3;
+    --accent: #00acc8; --accent-dark: #0090a8; --accent-light: #e0f6fa; --accent-mid: #33bdd4;
+    --border: rgba(26,39,51,0.08); --border-strong: rgba(26,39,51,0.15);
+    --danger: #B94040; --danger-light: #FAEAEA;
+    --radius: 8px; --radius-sm: 5px;
   }
+  body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; font-size: 14px; line-height: 1.5; }
 
-  body {
-    font-family: 'Montserrat', sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    min-height: 100vh;
-    font-size: 14px;
-    line-height: 1.5;
-  }
+  /* Loading */
+  .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; color: var(--ink3); }
+  .loading-spinner { width: 32px; height: 32px; border: 3px solid var(--accent-light); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .loading-screen p { font-size: 13px; font-weight: 500; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  .app { max-width: 860px; margin: 0 auto; padding: 0 0 5rem; }
+  /* Login */
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+  .login-card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 2.5rem 2rem; width: 100%; max-width: 380px; box-shadow: 0 4px 24px rgba(26,39,51,0.08); }
+  .login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; justify-content: center; }
+  .login-logo { width: 36px; height: 36px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: white; }
+  .login-brand-name { font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: 0.06em; text-transform: uppercase; }
+  .login-title { font-size: 15px; font-weight: 700; color: var(--ink); text-align: center; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .login-sub { font-size: 12px; color: var(--ink3); text-align: center; margin-bottom: 1.75rem; font-weight: 500; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 5px; }
+  .field input { width: 100%; background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; font-family: 'Montserrat', sans-serif; color: var(--ink); outline: none; transition: border-color 0.15s, box-shadow 0.15s; font-weight: 500; }
+  .field input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--accent-light); }
+  .login-btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); padding: 11px; font-size: 13px; font-weight: 700; font-family: 'Montserrat', sans-serif; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; transition: background 0.15s; margin-top: 6px; }
+  .login-btn:hover { background: var(--accent-dark); }
+  .login-btn:disabled { background: var(--ink3); cursor: not-allowed; }
+  .login-error { font-size: 12px; color: var(--danger); text-align: center; margin-top: 12px; font-weight: 500; min-height: 18px; }
+  .login-forgot { text-align: center; margin-top: 14px; font-size: 12px; color: var(--ink3); font-weight: 500; }
+  .login-forgot a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .login-forgot a:hover { text-decoration: underline; }
+  .login-notice { background: var(--accent-light); border: 1px solid var(--accent-mid); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--accent-dark); margin-bottom: 1rem; font-weight: 500; text-align: center; display: none; }
+  .login-notice.show { display: block; }
 
-  /* ── Top bar ── */
-  .topbar {
-    background: var(--accent);
-    padding: 0 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 56px;
-    margin-bottom: 2rem;
-  }
-
+  /* App */
+  .app { max-width: 860px; margin: 0 auto; padding: 0 0 5rem; display: none; }
+  .topbar { background: var(--accent); padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; margin-bottom: 2rem; }
   .brand { display: flex; align-items: center; gap: 10px; }
-  .brand-logo {
-    width: 30px; height: 30px;
-    background: rgba(255,255,255,0.2);
-    border: 1.5px solid rgba(255,255,255,0.5);
-    border-radius: 4px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700; color: white;
-    letter-spacing: -0.5px; flex-shrink: 0;
-  }
+  .brand-logo { width: 30px; height: 30px; background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.5); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
   .brand-name { font-size: 15px; font-weight: 700; color: white; letter-spacing: 0.08em; text-transform: uppercase; }
   .brand-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.25); margin: 0 10px; }
   .brand-sub { font-size: 11px; color: rgba(255,255,255,0.65); letter-spacing: 0.04em; font-weight: 500; text-transform: uppercase; }
-
   .topbar-right { display: flex; align-items: center; gap: 8px; }
-
+  .user-chip { font-size: 11px; color: rgba(255,255,255,0.75); font-weight: 500; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar-btn { font-size: 11px; color: rgba(255,255,255,0.75); background: none; border: 1px solid rgba(255,255,255,0.25); border-radius: var(--radius-sm); padding: 5px 11px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; transition: all 0.15s; }
+  .topbar-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+  .rate-pill { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 24px; padding: 5px 13px 5px 10px; cursor: pointer; font-size: 12px; font-weight: 600; color: white; white-space: nowrap; transition: background 0.15s; font-family: 'Montserrat', sans-serif; }
+  .rate-pill:hover { background: rgba(255,255,255,0.25); }
+  .rate-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.8); flex-shrink: 0; }
   .inner { padding: 0 1.5rem; }
-
-  /* ── Header ── */
-  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; }
   .header-left h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.2px; color: var(--ink); }
   .header-left p { color: var(--ink3); font-size: 12px; margin-top: 2px; font-weight: 500; }
 
-  .rate-pill {
-    display: flex; align-items: center; gap: 7px;
-    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 24px; padding: 5px 13px 5px 10px;
-    cursor: pointer; font-size: 12px; font-weight: 600; color: white;
-    white-space: nowrap; transition: background 0.15s; font-family: 'Montserrat', sans-serif;
-    letter-spacing: 0.02em;
-  }
-  .rate-pill:hover { background: rgba(255,255,255,0.25); }
-  .rate-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.8); flex-shrink: 0; }
-
-  /* ── Stats ── */
+  /* Stats */
   .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
-  .stat-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 1rem 1.1rem;
-    border-top: 3px solid var(--accent-mid);
-  }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; border-top: 3px solid var(--accent-mid); }
   .stat-card:first-child { border-top-color: var(--accent); }
   .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink3); font-weight: 600; margin-bottom: 6px; }
   .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; font-family: 'DM Mono', monospace; color: var(--ink); }
   .stat-value.accent { color: var(--accent); }
   .stat-sub { font-size: 11px; color: var(--ink3); margin-top: 3px; font-weight: 500; }
 
-  /* ── Add form ── */
-  .add-form {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem;
-    border-left: 3px solid var(--accent);
-  }
+  /* Form */
+  .add-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem; border-left: 3px solid var(--accent); }
   .form-title { font-size: 11px; font-weight: 700; color: var(--ink2); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr 140px auto; gap: 10px; align-items: end; }
   .form-group label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 5px; }
-  .form-group input {
-    width: 100%; background: var(--bg); border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px;
-    font-family: 'Montserrat', sans-serif; color: var(--ink); outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s; height: 36px; font-weight: 500;
-  }
+  .form-group input { width: 100%; background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: 'Montserrat', sans-serif; color: var(--ink); outline: none; transition: border-color 0.15s, box-shadow 0.15s; height: 36px; font-weight: 500; }
   .form-group input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--accent-light); }
   .form-group input::placeholder { color: var(--ink3); font-weight: 400; }
-
   .return-toggle-wrap { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
   .return-toggle-wrap label { font-size: 12px; color: var(--ink2); cursor: pointer; display: flex; align-items: center; gap: 7px; user-select: none; font-weight: 500; }
-
   .toggle { position: relative; display: inline-block; width: 34px; height: 20px; flex-shrink: 0; }
   .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
   .toggle-slider { position: absolute; inset: 0; background: var(--border-strong); border-radius: 10px; cursor: pointer; transition: background 0.2s; }
   .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
   .toggle input:checked + .toggle-slider { background: var(--accent); }
   .toggle input:checked + .toggle-slider:before { transform: translateX(14px); }
-
   .return-badge { font-size: 10px; font-weight: 700; background: var(--accent-light); color: var(--accent); padding: 2px 7px; border-radius: 8px; margin-left: 2px; }
-
-  .add-btn {
-    background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm);
-    padding: 0 16px; font-size: 12px; font-weight: 700; font-family: 'Montserrat', sans-serif;
-    cursor: pointer; white-space: nowrap; transition: background 0.15s; height: 36px;
-    display: flex; align-items: center; gap: 6px; letter-spacing: 0.03em; text-transform: uppercase;
-  }
+  .add-btn { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 0 16px; font-size: 12px; font-weight: 700; font-family: 'Montserrat', sans-serif; cursor: pointer; white-space: nowrap; transition: background 0.15s; height: 36px; display: flex; align-items: center; gap: 6px; letter-spacing: 0.03em; text-transform: uppercase; }
   .add-btn:hover { background: var(--accent-dark); }
   .add-btn:disabled { background: var(--ink3); cursor: not-allowed; }
-
   .status-row { margin-top: 10px; min-height: 18px; display: flex; align-items: center; gap: 10px; }
   .status-msg { font-size: 12px; color: var(--ink3); font-weight: 500; }
   .status-msg.loading { color: var(--accent); }
   .status-msg.error { color: var(--danger); }
   .status-msg.success { color: var(--accent-dark); font-weight: 600; }
   .spinner { width: 12px; height: 12px; border: 2px solid var(--accent-light); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
-  @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── Trip list ── */
+  /* Trips */
   .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); font-weight: 700; }
-  .month-filter {
-    background: var(--surface); border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm); padding: 5px 10px; font-size: 12px;
-    font-family: 'Montserrat', sans-serif; color: var(--ink); cursor: pointer; outline: none; font-weight: 500;
-  }
-
+  .month-filter { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 5px 10px; font-size: 12px; font-family: 'Montserrat', sans-serif; color: var(--ink); cursor: pointer; outline: none; font-weight: 500; }
   .month-group { margin-bottom: 1.25rem; }
-  .month-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 12px; background: var(--accent); border-radius: var(--radius-sm); margin-bottom: 6px;
-  }
+  .month-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--accent); border-radius: var(--radius-sm); margin-bottom: 6px; }
   .month-name { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: rgba(255,255,255,0.9); text-transform: uppercase; }
   .month-totals { display: flex; gap: 16px; font-size: 12px; font-family: 'DM Mono', monospace; }
   .month-totals span { color: rgba(255,255,255,0.6); }
-  .month-totals strong { color: #ffffff; font-weight: 700; }
-
-  .trip-row {
-    display: grid; grid-template-columns: 1fr 100px 80px 80px 34px;
-    gap: 8px; align-items: center; padding: 10px 12px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); margin-bottom: 5px; transition: border-color 0.1s, box-shadow 0.1s;
-  }
+  .month-totals strong { color: #fff; font-weight: 700; }
+  .trip-row { display: grid; grid-template-columns: 1fr 100px 80px 80px 34px; gap: 8px; align-items: center; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 5px; transition: border-color 0.1s, box-shadow 0.1s; }
   .trip-row:hover { border-color: var(--accent-mid); box-shadow: 0 1px 4px rgba(0,172,200,0.1); }
   .trip-route { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
   .trip-meta { font-size: 11px; color: var(--ink3); margin-top: 2px; display: flex; gap: 6px; align-items: center; }
   .return-tag { font-size: 10px; background: var(--accent-light); color: var(--accent); padding: 1px 6px; border-radius: 8px; font-weight: 700; }
-  .trip-date-col { font-size: 11px; color: var(--ink3); font-family: 'DM Mono', monospace; font-weight: 500; }
+  .trip-date-col { font-size: 11px; color: var(--ink3); font-family: 'DM Mono', monospace; }
   .trip-dist { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--ink2); text-align: right; }
   .trip-cost { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--accent); font-weight: 600; text-align: right; }
   .del-btn { background: none; border: none; cursor: pointer; color: var(--ink3); font-size: 18px; line-height: 1; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: color 0.1s, background 0.1s; }
   .del-btn:hover { color: var(--danger); background: var(--danger-light); }
-
   .empty-state { text-align: center; padding: 3rem 1rem; color: var(--ink3); }
   .empty-icon { font-size: 28px; margin-bottom: 8px; }
   .empty-state p { font-size: 13px; font-weight: 500; }
 
-  /* ── Rate modal ── */
+  /* Modal */
   .modal-bg { display: none; position: fixed; inset: 0; background: rgba(26,39,51,0.5); z-index: 100; align-items: center; justify-content: center; }
   .modal-bg.open { display: flex; }
   .modal { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; width: 360px; box-shadow: 0 12px 40px rgba(26,39,51,0.2); border-top: 3px solid var(--accent); }
@@ -198,15 +140,10 @@
   .rate-input-wrap input { flex: 1; border: none; background: none; padding: 10px 0; font-size: 20px; font-family: 'DM Mono', monospace; font-weight: 500; color: var(--ink); outline: none; }
   .rate-unit { font-size: 12px; color: var(--ink3); white-space: nowrap; font-weight: 500; }
   .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-  .btn-sec { background: none; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 12px; font-family: 'Montserrat', sans-serif; cursor: pointer; color: var(--ink2); font-weight: 600; letter-spacing: 0.03em; }
-  .btn-pri { background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 12px; font-family: 'Montserrat', sans-serif; font-weight: 700; cursor: pointer; color: #fff; letter-spacing: 0.03em; text-transform: uppercase; }
+  .btn-sec { background: none; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 12px; font-family: 'Montserrat', sans-serif; cursor: pointer; color: var(--ink2); font-weight: 600; }
+  .btn-pri { background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 12px; font-family: 'Montserrat', sans-serif; font-weight: 700; cursor: pointer; color: #fff; text-transform: uppercase; letter-spacing: 0.03em; }
   .btn-pri:hover { background: var(--accent-dark); }
 
-  /* ── Export ── */
-  .export-btn { font-size: 11px; color: rgba(255,255,255,0.75); background: none; border: 1px solid rgba(255,255,255,0.25); border-radius: var(--radius-sm); padding: 5px 11px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; transition: all 0.15s; }
-  .export-btn:hover { background: rgba(255,255,255,0.15); color: white; }
-
-  /* ── Responsive ── */
   @media (max-width: 640px) {
     .form-grid { grid-template-columns: 1fr 1fr; }
     .stats-row { grid-template-columns: 1fr 1fr; }
@@ -214,14 +151,41 @@
     .trip-date-col { display: none; }
     .topbar { padding: 0 1rem; }
     .inner { padding: 0 1rem; }
-    .brand-sub, .brand-divider { display: none; }
+    .brand-sub, .brand-divider, .user-chip { display: none; }
   }
 </style>
 </head>
 <body>
-<div class="app">
 
-  <!-- Top navigation bar -->
+<div class="loading-screen" id="loading-screen">
+  <div class="loading-spinner"></div>
+  <p>Loading…</p>
+</div>
+
+<div class="login-wrap" id="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo">A</div>
+      <span class="login-brand-name">Amove</span>
+    </div>
+    <div class="login-title">Mileage Logger</div>
+    <div class="login-sub">Sign in to your account</div>
+    <div class="login-notice" id="login-notice"></div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="signIn()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-forgot"><a href="#" onclick="resetPassword(event)">Forgot your password?</a></div>
+  </div>
+</div>
+
+<div class="app" id="app">
   <div class="topbar">
     <div class="brand">
       <div class="brand-logo">A</div>
@@ -230,105 +194,86 @@
       <span class="brand-sub">Mileage Logger</span>
     </div>
     <div class="topbar-right">
-      <button class="export-btn" onclick="exportCSV()">Export CSV</button>
+      <span class="user-chip" id="user-email"></span>
+      <button class="topbar-btn" onclick="exportCSV()">Export CSV</button>
       <button class="rate-pill" onclick="openModal()">
         <span class="rate-dot"></span>
         <span id="rate-display">€0.00 / km</span>
       </button>
+      <button class="topbar-btn" onclick="signOut()">Sign Out</button>
     </div>
   </div>
-
   <div class="inner">
-
-  <!-- Header -->
-  <div class="header">
-    <div class="header-left">
-      <h1>Mileage Logger</h1>
-      <p>Business trip expenses &mdash; Ireland</p>
-    </div>
-
-  </div>
-
-  <!-- Stats -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">This month</div>
-      <div class="stat-value accent" id="stat-month-cost">€0.00</div>
-      <div class="stat-sub" id="stat-month-km">0 km</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">This year</div>
-      <div class="stat-value" id="stat-year-cost">€0.00</div>
-      <div class="stat-sub" id="stat-year-km">0 km</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Total trips</div>
-      <div class="stat-value" id="stat-trips">0</div>
-      <div class="stat-sub">all time</div>
-    </div>
-  </div>
-
-  <!-- Add trip form -->
-  <div class="add-form">
-    <div class="form-title">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-      Log a trip
-    </div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>From</label>
-        <input type="text" id="from-input" placeholder="e.g. Dublin or D02 XY00" autocomplete="off">
+    <div class="header">
+      <div class="header-left">
+        <h1>Mileage Logger</h1>
+        <p>Business trip expenses — Ireland</p>
       </div>
-      <div class="form-group">
-        <label>To</label>
-        <input type="text" id="to-input" placeholder="e.g. Cork or T12 AB34" autocomplete="off">
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">This month</div>
+        <div class="stat-value accent" id="stat-month-cost">€0.00</div>
+        <div class="stat-sub" id="stat-month-km">0 km</div>
       </div>
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date" id="date-input">
+      <div class="stat-card">
+        <div class="stat-label">This year</div>
+        <div class="stat-value" id="stat-year-cost">€0.00</div>
+        <div class="stat-sub" id="stat-year-km">0 km</div>
       </div>
-      <button class="add-btn" id="add-btn" onclick="addTrip()">
-        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        Add
-      </button>
+      <div class="stat-card">
+        <div class="stat-label">Total trips</div>
+        <div class="stat-value" id="stat-trips">0</div>
+        <div class="stat-sub">all time</div>
+      </div>
     </div>
-    <div class="return-toggle-wrap">
-      <label>
-        <span class="toggle">
-          <input type="checkbox" id="return-toggle">
-          <span class="toggle-slider"></span>
-        </span>
-        Return trip <span class="return-badge">×2</span>
-      </label>
-      <span style="color:var(--ink3);font-size:12px;margin-left:4px;">Distance will be doubled</span>
+    <div class="add-form">
+      <div class="form-title">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Log a trip
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>From</label>
+          <input type="text" id="from-input" placeholder="e.g. Dublin or D02 XY00" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>To</label>
+          <input type="text" id="to-input" placeholder="e.g. Cork or T12 AB34" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="date-input">
+        </div>
+        <button class="add-btn" id="add-btn" onclick="addTrip()">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Add
+        </button>
+      </div>
+      <div class="return-toggle-wrap">
+        <label>
+          <span class="toggle"><input type="checkbox" id="return-toggle"><span class="toggle-slider"></span></span>
+          Return trip <span class="return-badge">x2</span>
+        </label>
+        <span style="color:var(--ink3);font-size:12px;margin-left:4px;">Distance will be doubled</span>
+      </div>
+      <div class="status-row">
+        <span id="spinner" class="spinner" style="display:none"></span>
+        <span class="status-msg" id="status-msg">Enter locations above to calculate distance</span>
+      </div>
     </div>
-    <div class="status-row">
-      <span id="spinner" class="spinner" style="display:none"></span>
-      <span class="status-msg" id="status-msg">Enter locations above to calculate distance</span>
+    <div class="section-header">
+      <span class="section-title">Trip history</span>
+      <select class="month-filter" id="month-filter" onchange="renderTrips()"><option value="all">All months</option></select>
     </div>
+    <div id="trips-container"></div>
   </div>
-
-  <!-- Trip list -->
-  <div class="section-header">
-    <span class="section-title">Trip history</span>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <select class="month-filter" id="month-filter" onchange="render()">
-        <option value="all">All months</option>
-      </select>
-    </div>
-  </div>
-
-  <div id="trips-container"></div>
-
 </div>
 
-  </div><!-- /.inner -->
-
-<!-- Rate modal -->
 <div class="modal-bg" id="rate-modal" onclick="handleModalClick(event)">
   <div class="modal">
     <h2>Mileage rate</h2>
-    <p class="modal-sub">Set your rate per kilometre. Irish Revenue standard rates are shown below as presets.</p>
+    <p class="modal-sub">Set your rate per kilometre. Irish Revenue standard rates shown as presets.</p>
     <div class="rate-presets">
       <button class="preset-btn" onclick="setPreset(0.2848)">€0.2848 — up to 1,500 km</button>
       <button class="preset-btn" onclick="setPreset(0.1656)">€0.1656 — over 1,500 km</button>
@@ -346,76 +291,124 @@
 </div>
 
 <script>
-// ── Config ──────────────────────────────────────────────────────────
-// Distance is calculated via /api/distance (Vercel serverless function).
-// Your Google Maps API key lives there — never in this file.
-// Set GOOGLE_MAPS_KEY in Vercel → Settings → Environment Variables.
+const SUPABASE_URL = 'https://udjozciqjtmjfojerulm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkam96Y2lxanRtamZvamVydWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDM4MTMsImV4cCI6MjA5MzQ3OTgxM30.xGgAiMEN0KEUqhFejcAlmEdPt7B7cY_xNBft1zTV1C4';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const STORAGE_KEY = 'mileage-trips-v2';
-const RATE_KEY    = 'mileage-rate-v2';
-const DEFAULT_RATE = 0.2848;
+let currentUser = null, trips = [], rate = 0.2848, calcTimer = null, previewKm = null;
 
-// ── State ────────────────────────────────────────────────────────────
-let trips = [];
-let rate  = DEFAULT_RATE;
-let calcTimer = null;
-let previewKm = null;
-
-// ── Persistence ──────────────────────────────────────────────────────
-function loadData() {
-  try { trips = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { trips = []; }
-  const r = parseFloat(localStorage.getItem(RATE_KEY));
-  if (!isNaN(r) && r > 0) rate = r;
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { await onSignedIn(session.user); }
+  else { show('login-screen'); }
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) { await onSignedIn(session.user); }
+    else if (event === 'SIGNED_OUT') { currentUser = null; trips = []; show('login-screen'); }
+    else if (event === 'PASSWORD_RECOVERY') {
+      show('login-screen');
+      const notice = document.getElementById('login-notice');
+      notice.textContent = 'Enter your new password below.';
+      notice.classList.add('show');
+      document.getElementById('login-btn').textContent = 'Set New Password';
+      document.getElementById('login-btn').onclick = setNewPassword;
+    }
+  });
 }
 
-function saveTrips() { localStorage.setItem(STORAGE_KEY, JSON.stringify(trips)); }
+async function onSignedIn(user) {
+  currentUser = user;
+  document.getElementById('user-email').textContent = user.email;
+  await loadRate();
+  await loadTrips();
+  show('app');
+  render();
+}
 
-// ── Formatters ───────────────────────────────────────────────────────
-const fmtEur = n => '€' + n.toFixed(2);
-const fmtKm  = n => (Math.round(n * 10) / 10).toFixed(1) + ' km';
-const todayISO = () => new Date().toISOString().split('T')[0];
-const monthKey = d => d.slice(0, 7);
-const monthLabel = k => {
-  const [y, m] = k.split('-');
-  return new Date(+y, +m - 1, 1).toLocaleDateString('en-IE', { month: 'long', year: 'numeric' });
-};
+function show(id) {
+  ['loading-screen','login-screen','app'].forEach(i => {
+    const el = document.getElementById(i);
+    el.style.display = i === id ? (i === 'login-screen' ? 'flex' : 'block') : 'none';
+  });
+}
 
-// ── Distance: Google Distance Matrix API ─────────────────────────────
+async function signIn() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  if (!email || !password) { err.textContent = 'Please enter your email and password.'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    err.textContent = error.message === 'Invalid login credentials' ? 'Incorrect email or password.' : error.message;
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+async function signOut() { await sb.auth.signOut(); }
+
+async function resetPassword(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { document.getElementById('login-error').textContent = 'Enter your email address first.'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+  const notice = document.getElementById('login-notice');
+  notice.classList.add('show');
+  notice.textContent = error ? error.message : 'Password reset email sent — check your inbox.';
+}
+
+async function setNewPassword() {
+  const password = document.getElementById('login-password').value;
+  if (!password || password.length < 6) { document.getElementById('login-error').textContent = 'Password must be at least 6 characters.'; return; }
+  const { error } = await sb.auth.updateUser({ password });
+  if (error) document.getElementById('login-error').textContent = error.message;
+}
+
+document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+
+async function loadRate() {
+  const { data: { user } } = await sb.auth.getUser();
+  const r = user?.user_metadata?.mileage_rate;
+  if (r && r > 0) rate = r;
+}
+
+async function persistRate() {
+  await sb.auth.updateUser({ data: { mileage_rate: rate } });
+}
+
+async function loadTrips() {
+  const { data, error } = await sb.from('trips').select('*').order('date', { ascending: false });
+  if (!error && data) trips = data;
+}
+
+async function saveTrip(trip) {
+  const { data, error } = await sb.from('trips').insert([{
+    user_id: currentUser.id,
+    from_location: trip.from,
+    to_location: trip.to,
+    date: trip.date,
+    is_return: trip.isReturn,
+    distance_km: trip.distance,
+    cost: trip.cost,
+    rate_used: trip.rate,
+  }]).select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function removeTrip(id) {
+  const { error } = await sb.from('trips').delete().eq('id', id);
+  if (error) throw error;
+}
+
 async function getDistanceGoogle(origin, destination) {
-  // Calls our Vercel serverless function which keeps the API key server-side.
   const url = `/api/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
   const res = await fetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'API error');
   return data.distanceKm;
 }
-
-// ── Distance: Straight-line fallback ─────────────────────────────────
-const TOWNS = {
-  'dublin':['Dublin, Ireland'],
-  'cork':['Cork, Ireland'],
-  'galway':['Galway, Ireland'],
-  'limerick':['Limerick, Ireland'],
-  'waterford':['Waterford, Ireland'],
-  'kilkenny':['Kilkenny, Ireland'],
-  'wexford':['Wexford, Ireland'],
-  'sligo':['Sligo, Ireland'],
-  'athlone':['Athlone, Ireland'],
-  'drogheda':['Drogheda, Ireland'],
-  'dundalk':['Dundalk, Ireland'],
-  'tralee':['Tralee, Ireland'],
-  'ennis':['Ennis, Ireland'],
-  'mullingar':['Mullingar, Ireland'],
-  'tullamore':['Tullamore, Ireland'],
-  'portlaoise':['Portlaoise, Ireland'],
-  'carlow':['Carlow, Ireland'],
-  'naas':['Naas, Ireland'],
-  'bray':['Bray, Ireland'],
-  'wicklow':['Wicklow, Ireland'],
-  'navan':['Navan, Ireland'],
-  'clonmel':['Clonmel, Ireland'],
-  'nenagh':['Nenagh, Ireland'],
-};
 
 const COORDS = {
   'dublin':[53.3498,-6.2603],'cork':[51.8985,-8.4756],'galway':[53.2707,-9.0568],
@@ -425,10 +418,9 @@ const COORDS = {
   'ennis':[52.8462,-8.9806],'mullingar':[53.5244,-7.3381],'tullamore':[53.2746,-7.4878],
   'portlaoise':[53.0342,-7.2992],'carlow':[52.8408,-6.9261],'naas':[53.2190,-6.6658],
   'bray':[53.2016,-6.0985],'wicklow':[52.9803,-6.0443],'navan':[53.6566,-6.6905],
-  'clonmel':[52.3549,-7.7017],'nenagh':[52.8616,-8.1987],
+  'clonmel':[52.3549,-7.7017],'nenagh':[52.8616,-8.1987],'kildare':[53.1577,-6.9092],
 };
-
-const EIRCODE_ROUTING = {
+const EIRCODE = {
   'A':[53.2,-6.3],'C':[51.85,-8.3],'D':[53.33,-6.25],'E':[52.85,-8.9],
   'F':[53.28,-9.1],'H':[54.27,-8.5],'K':[53.35,-6.5],'N':[53.5,-6.8],
   'P':[52.25,-8.6],'R':[52.7,-7.8],'T':[52.27,-9.7],'V':[51.9,-9.5],
@@ -440,9 +432,9 @@ function resolveCoords(input) {
   if (COORDS[s]) return COORDS[s];
   for (const [k,v] of Object.entries(COORDS)) { if (s.includes(k)||k.includes(s)) return v; }
   const ec = input.trim().match(/^([A-Za-z])(\d{2})\s*[A-Za-z0-9]{4}$/i);
-  if (ec) { const c = EIRCODE_ROUTING[ec[1].toUpperCase()]; if (c) return c; }
+  if (ec) return EIRCODE[ec[1].toUpperCase()] || null;
   const rk = input.trim().match(/^([A-Za-z])\d{2}$/i);
-  if (rk) { const c = EIRCODE_ROUTING[rk[1].toUpperCase()]; if (c) return c; }
+  if (rk) return EIRCODE[rk[1].toUpperCase()] || null;
   return null;
 }
 
@@ -453,220 +445,168 @@ function haversine([lat1,lon1],[lat2,lon2]) {
 }
 
 function fallbackDistance(from, to) {
-  const c1 = resolveCoords(from), c2 = resolveCoords(to);
+  const c1=resolveCoords(from), c2=resolveCoords(to);
   if (!c1||!c2) return null;
-  return Math.round(haversine(c1,c2) * 1.35 * 10) / 10;
+  return Math.round(haversine(c1,c2)*1.35*10)/10;
 }
 
-// ── Distance calculation (with debounce) ─────────────────────────────
 function setStatus(msg, type='', showSpinner=false) {
   document.getElementById('status-msg').textContent = msg;
-  document.getElementById('status-msg').className = 'status-msg' + (type ? ' '+type : '');
+  document.getElementById('status-msg').className = 'status-msg'+(type?' '+type:'');
   document.getElementById('spinner').style.display = showSpinner ? 'inline-block' : 'none';
 }
 
 function onLocationInput() {
-  clearTimeout(calcTimer);
-  previewKm = null;
+  clearTimeout(calcTimer); previewKm = null;
   const from = document.getElementById('from-input').value.trim();
-  const to   = document.getElementById('to-input').value.trim();
-  if (!from || !to) { setStatus('Enter locations above to calculate distance'); return; }
-  setStatus('Calculating road distance…', 'loading', true);
-  calcTimer = setTimeout(() => calcDistance(from, to), 600);
+  const to = document.getElementById('to-input').value.trim();
+  if (!from||!to) { setStatus('Enter locations above to calculate distance'); return; }
+  setStatus('Calculating road distance…','loading',true);
+  calcTimer = setTimeout(() => calcDistance(from,to), 600);
 }
 
 async function calcDistance(from, to) {
   const isReturn = document.getElementById('return-toggle').checked;
-  let km = null;
-  let method = '';
-
-  try {
-    km = await getDistanceGoogle(from + ', Ireland', to + ', Ireland');
-    method = 'road distance';
-  } catch(e) {
-    km = fallbackDistance(from, to);
-    method = 'estimated';
-  }
-
-  if (!km) {
-    setStatus('Location not recognised — try a town name or Eircode', 'error');
-    return;
-  }
-
-  const display = isReturn ? km * 2 : km;
+  let km=null, method='';
+  try { km = await getDistanceGoogle(from+', Ireland', to+', Ireland'); method='road distance'; }
+  catch(e) { km = fallbackDistance(from, to); method='estimated'; }
+  if (!km) { setStatus('Location not recognised — try a town name or Eircode','error'); return; }
+  const display = isReturn ? km*2 : km;
   previewKm = km;
-  const cost = display * rate;
-  setStatus(`${fmtKm(display)} ${isReturn ? '(return) ' : ''}· ${fmtEur(cost)} at current rate${method === 'estimated' ? ' · estimated' : ''}`, 'success');
+  setStatus(`${fmtKm(display)}${isReturn?' (return)':''} · ${fmtEur(display*rate)} at current rate${method==='estimated'?' · estimated':''}`, 'success');
 }
 
-// ── Add trip ─────────────────────────────────────────────────────────
 async function addTrip() {
-  const from   = document.getElementById('from-input').value.trim();
-  const to     = document.getElementById('to-input').value.trim();
-  const date   = document.getElementById('date-input').value;
-  const isReturn = document.getElementById('return-toggle').checked;
-
-  if (!from||!to||!date) { setStatus('Please fill in all fields', 'error'); return; }
-
+  const from=document.getElementById('from-input').value.trim();
+  const to=document.getElementById('to-input').value.trim();
+  const date=document.getElementById('date-input').value;
+  const isReturn=document.getElementById('return-toggle').checked;
+  if (!from||!to||!date) { setStatus('Please fill in all fields','error'); return; }
   document.getElementById('add-btn').disabled = true;
-
   let km = previewKm;
   if (!km) {
-    setStatus('Calculating…', 'loading', true);
+    setStatus('Calculating…','loading',true);
     try { km = await getDistanceGoogle(from+', Ireland', to+', Ireland'); }
     catch(e) { km = fallbackDistance(from, to); }
   }
-
-  document.getElementById('add-btn').disabled = false;
-
-  if (!km) { setStatus('Could not calculate distance — check locations', 'error'); return; }
-
-  const distance = isReturn ? Math.round(km * 2 * 10) / 10 : km;
-  const trip = {
-    id: Date.now().toString(),
-    from, to, date, isReturn,
-    distance,
-    cost: Math.round(distance * rate * 100) / 100,
-    rate,
-  };
-
-  trips.unshift(trip);
-  saveTrips();
-
-  // Reset form
-  document.getElementById('from-input').value = '';
-  document.getElementById('to-input').value   = '';
-  document.getElementById('return-toggle').checked = false;
-  document.getElementById('date-input').value = todayISO();
-  previewKm = null;
-  setStatus('Trip added successfully', 'success');
-
-  render();
+  if (!km) { setStatus('Could not calculate distance — check locations','error'); document.getElementById('add-btn').disabled=false; return; }
+  const distance = isReturn ? Math.round(km*2*10)/10 : km;
+  try {
+    const saved = await saveTrip({ from, to, date, isReturn, distance, cost: Math.round(distance*rate*100)/100, rate });
+    trips.unshift(saved);
+    document.getElementById('from-input').value='';
+    document.getElementById('to-input').value='';
+    document.getElementById('return-toggle').checked=false;
+    document.getElementById('date-input').value=todayISO();
+    previewKm=null;
+    setStatus('Trip saved','success');
+    render();
+  } catch(e) { setStatus('Error saving trip — please try again','error'); }
+  document.getElementById('add-btn').disabled=false;
 }
 
-// ── Delete ────────────────────────────────────────────────────────────
-function deleteTrip(id) {
+async function deleteTrip(id) {
   if (!confirm('Remove this trip?')) return;
-  trips = trips.filter(t => t.id !== id);
-  saveTrips();
-  render();
+  try { await removeTrip(id); trips=trips.filter(t=>t.id!==id); render(); }
+  catch(e) { alert('Could not delete trip. Please try again.'); }
 }
 
-// ── Export CSV ────────────────────────────────────────────────────────
 function exportCSV() {
   if (!trips.length) { alert('No trips to export.'); return; }
-  const rows = [['Date','From','To','Return','Distance (km)','Rate (€/km)','Cost (€)']];
-  trips.forEach(t => rows.push([t.date, t.from, t.to, t.isReturn?'Yes':'No', t.distance.toFixed(1), t.rate.toFixed(4), t.cost.toFixed(2)]));
-  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = 'mileage-export-' + todayISO() + '.csv';
+  const rows=[['Date','From','To','Return','Distance (km)','Rate (€/km)','Cost (€)']];
+  trips.forEach(t=>rows.push([t.date,t.from_location,t.to_location,t.is_return?'Yes':'No',t.distance_km.toFixed(1),t.rate_used.toFixed(4),t.cost.toFixed(2)]));
+  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='mileage-export-'+todayISO()+'.csv';
   a.click();
 }
 
-// ── Render ────────────────────────────────────────────────────────────
+const fmtEur=n=>'€'+n.toFixed(2);
+const fmtKm=n=>(Math.round(n*10)/10).toFixed(1)+' km';
+const todayISO=()=>new Date().toISOString().split('T')[0];
+const monthKey=d=>d.slice(0,7);
+const monthLabel=k=>{ const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('en-IE',{month:'long',year:'numeric'}); };
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
 function render() {
-  updateStats();
-  updateFilter();
-  renderTrips();
-  document.getElementById('rate-display').textContent = `€${rate.toFixed(4)} / km`;
-  // api-banner removed — key is always server-side
+  updateStats(); updateFilter(); renderTrips();
+  document.getElementById('rate-display').textContent=`€${rate.toFixed(4)} / km`;
 }
 
 function updateStats() {
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const thisYear  = String(now.getFullYear());
-  const mT = trips.filter(t => t.date.startsWith(thisMonth));
-  const yT = trips.filter(t => t.date.startsWith(thisYear));
-  document.getElementById('stat-month-cost').textContent = fmtEur(mT.reduce((s,t)=>s+t.cost,0));
-  document.getElementById('stat-month-km').textContent   = fmtKm(mT.reduce((s,t)=>s+t.distance,0));
-  document.getElementById('stat-year-cost').textContent  = fmtEur(yT.reduce((s,t)=>s+t.cost,0));
-  document.getElementById('stat-year-km').textContent    = fmtKm(yT.reduce((s,t)=>s+t.distance,0));
-  document.getElementById('stat-trips').textContent      = trips.length;
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const thisYear=String(now.getFullYear());
+  const mT=trips.filter(t=>t.date.startsWith(thisMonth));
+  const yT=trips.filter(t=>t.date.startsWith(thisYear));
+  document.getElementById('stat-month-cost').textContent=fmtEur(mT.reduce((s,t)=>s+t.cost,0));
+  document.getElementById('stat-month-km').textContent=fmtKm(mT.reduce((s,t)=>s+t.distance_km,0));
+  document.getElementById('stat-year-cost').textContent=fmtEur(yT.reduce((s,t)=>s+t.cost,0));
+  document.getElementById('stat-year-km').textContent=fmtKm(yT.reduce((s,t)=>s+t.distance_km,0));
+  document.getElementById('stat-trips').textContent=trips.length;
 }
 
 function updateFilter() {
-  const sel = document.getElementById('month-filter');
-  const cur = sel.value;
-  const months = [...new Set(trips.map(t=>monthKey(t.date)))].sort().reverse();
-  sel.innerHTML = '<option value="all">All months</option>' + months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
-  if (months.includes(cur)) sel.value = cur;
+  const sel=document.getElementById('month-filter');
+  const cur=sel.value;
+  const months=[...new Set(trips.map(t=>monthKey(t.date)))].sort().reverse();
+  sel.innerHTML='<option value="all">All months</option>'+months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
+  if (months.includes(cur)) sel.value=cur;
 }
 
 function renderTrips() {
-  const container = document.getElementById('trips-container');
-  const filter = document.getElementById('month-filter').value;
-  const filtered = filter === 'all' ? trips : trips.filter(t=>t.date.startsWith(filter));
-
-  if (!filtered.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🚗</div><p>${trips.length===0?'No trips yet — log your first trip above':'No trips in this period'}</p></div>`;
-    return;
-  }
-
-  const groups = {};
-  filtered.forEach(t => { const k=monthKey(t.date); if(!groups[k]) groups[k]=[]; groups[k].push(t); });
-
-  container.innerHTML = Object.keys(groups).sort().reverse().map(mk => {
-    const g = groups[mk];
-    const totKm   = g.reduce((s,t)=>s+t.distance,0);
-    const totCost = g.reduce((s,t)=>s+t.cost,0);
+  const container=document.getElementById('trips-container');
+  const filter=document.getElementById('month-filter').value;
+  const filtered=filter==='all'?trips:trips.filter(t=>t.date.startsWith(filter));
+  if (!filtered.length) { container.innerHTML=`<div class="empty-state"><div class="empty-icon">&#128663;</div><p>${trips.length===0?'No trips yet — log your first trip above':'No trips in this period'}</p></div>`; return; }
+  const groups={};
+  filtered.forEach(t=>{ const k=monthKey(t.date); if(!groups[k]) groups[k]=[]; groups[k].push(t); });
+  container.innerHTML=Object.keys(groups).sort().reverse().map(mk=>{
+    const g=groups[mk];
+    const totKm=g.reduce((s,t)=>s+t.distance_km,0);
+    const totCost=g.reduce((s,t)=>s+t.cost,0);
     return `<div class="month-group">
       <div class="month-header">
         <span class="month-name">${monthLabel(mk)}</span>
-        <span class="month-totals">
-          <span>${fmtKm(totKm)}</span>
-          <strong>${fmtEur(totCost)}</strong>
-        </span>
+        <span class="month-totals"><span>${fmtKm(totKm)}</span><strong>${fmtEur(totCost)}</strong></span>
       </div>
-      ${g.map(t => {
-        const d = new Date(t.date+'T00:00:00');
-        const ds = d.toLocaleDateString('en-IE',{day:'numeric',month:'short'});
+      ${g.map(t=>{
+        const d=new Date(t.date+'T00:00:00');
+        const ds=d.toLocaleDateString('en-IE',{day:'numeric',month:'short'});
         return `<div class="trip-row">
-          <div>
-            <div class="trip-route">${esc(t.from)} → ${esc(t.to)}</div>
-            <div class="trip-meta">${t.isReturn?'<span class="return-tag">Return</span>':''}</div>
-          </div>
+          <div><div class="trip-route">${esc(t.from_location)} &#8594; ${esc(t.to_location)}</div><div class="trip-meta">${t.is_return?'<span class="return-tag">Return</span>':''}</div></div>
           <div class="trip-date-col">${ds}</div>
-          <div class="trip-dist">${fmtKm(t.distance)}</div>
+          <div class="trip-dist">${fmtKm(t.distance_km)}</div>
           <div class="trip-cost">${fmtEur(t.cost)}</div>
-          <button class="del-btn" onclick="deleteTrip('${t.id}')" title="Remove trip">&times;</button>
+          <button class="del-btn" onclick="deleteTrip('${t.id}')" title="Remove">&times;</button>
         </div>`;
       }).join('')}
     </div>`;
   }).join('');
 }
 
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-// ── Modal ─────────────────────────────────────────────────────────────
-function openModal()  { document.getElementById('rate-input').value=rate; document.getElementById('rate-modal').classList.add('open'); }
+function openModal() { document.getElementById('rate-input').value=rate; document.getElementById('rate-modal').classList.add('open'); }
 function closeModal() { document.getElementById('rate-modal').classList.remove('open'); }
 function handleModalClick(e) { if(e.target===e.currentTarget) closeModal(); }
 function setPreset(v) { document.getElementById('rate-input').value=v; }
 
-function saveRate() {
-  const v = parseFloat(document.getElementById('rate-input').value);
-  if (isNaN(v)||v<=0) { alert('Please enter a valid rate greater than 0.'); return; }
-  rate = v;
-  localStorage.setItem(RATE_KEY, rate);
-  trips = trips.map(t=>({...t, cost: Math.round(t.distance*rate*100)/100, rate}));
-  saveTrips();
-  closeModal();
-  render();
+async function saveRate() {
+  const v=parseFloat(document.getElementById('rate-input').value);
+  if (isNaN(v)||v<=0) { alert('Please enter a valid rate.'); return; }
+  rate=v;
+  await persistRate();
+  trips=trips.map(t=>({...t,cost:Math.round(t.distance_km*rate*100)/100}));
+  closeModal(); render();
 }
 
-// ── Init ──────────────────────────────────────────────────────────────
-document.getElementById('date-input').value = todayISO();
-document.getElementById('from-input').addEventListener('input', onLocationInput);
-document.getElementById('to-input').addEventListener('input', onLocationInput);
-document.getElementById('return-toggle').addEventListener('change', () => {
-  if (document.getElementById('from-input').value && document.getElementById('to-input').value) onLocationInput();
-});
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+document.getElementById('date-input').value=todayISO();
+document.getElementById('from-input').addEventListener('input',onLocationInput);
+document.getElementById('to-input').addEventListener('input',onLocationInput);
+document.getElementById('return-toggle').addEventListener('change',()=>{ if(document.getElementById('from-input').value&&document.getElementById('to-input').value) onLocationInput(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
-loadData();
-render();
+init();
 </script>
 </body>
 </html>
