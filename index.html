@@ -95,12 +95,7 @@
   .add-btn { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 0 16px; font-size: 12px; font-weight: 700; font-family: 'Montserrat', sans-serif; cursor: pointer; white-space: nowrap; transition: background 0.15s; height: 36px; display: flex; align-items: center; gap: 6px; letter-spacing: 0.03em; text-transform: uppercase; }
   .add-btn:hover { background: var(--accent-dark); }
   .add-btn:disabled { background: var(--ink3); cursor: not-allowed; }
-  .status-row { margin-top: 10px; min-height: 18px; display: flex; align-items: center; gap: 10px; }
-  .status-msg { font-size: 12px; color: var(--ink3); font-weight: 500; }
-  .status-msg.loading { color: var(--accent); }
-  .status-msg.error { color: var(--danger); }
-  .status-msg.success { color: var(--accent-dark); font-weight: 600; }
-  .spinner { width: 12px; height: 12px; border: 2px solid var(--accent-light); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+
 
   /* Trips */
   .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -276,10 +271,7 @@
         </label>
         <span style="color:var(--ink3);font-size:12px;margin-left:4px;">Distance will be doubled</span>
       </div>
-      <div class="status-row">
-        <span id="spinner" class="spinner" style="display:none"></span>
-        <span class="status-msg" id="status-msg">Enter locations above to calculate distance</span>
-      </div>
+
     </div>
     <div class="section-header">
       <span class="section-title">Trip history</span>
@@ -314,7 +306,7 @@ const SUPABASE_URL = 'https://udjozciqjtmjfojerulm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkam96Y2lxanRtamZvamVydWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDM4MTMsImV4cCI6MjA5MzQ3OTgxM30.xGgAiMEN0KEUqhFejcAlmEdPt7B7cY_xNBft1zTV1C4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentUser = null, trips = [], rate = 0.5182, calcTimer = null, previewKm = null;
+let currentUser = null, trips = [], rate = 0.5182;
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
@@ -425,10 +417,18 @@ async function removeTrip(id) {
 
 async function getDistanceGoogle(origin, destination) {
   const url = `/api/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'API error');
-  return data.distanceKm;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API error');
+    return data.distanceKm;
+  } catch(e) {
+    clearTimeout(timeout);
+    throw e;
+  }
 }
 
 const COORDS = {
@@ -444,14 +444,27 @@ const COORDS = {
 const EIRCODE = {
   'A':[53.2,-6.3],'C':[51.85,-8.3],'D':[53.33,-6.25],'E':[52.85,-8.9],
   'F':[53.28,-9.1],'H':[54.27,-8.5],'K':[53.35,-6.5],'N':[53.5,-6.8],
-  'P':[52.25,-8.6],'R':[52.7,-7.8],'T':[52.27,-9.7],'V':[51.9,-9.5],
+  'P':[52.25,-8.6],'R':[53.05,-6.95],'T':[52.27,-9.7],'V':[51.9,-9.5],
   'W':[52.5,-6.5],'X':[52.26,-7.1],'Y':[52.85,-6.5],
+};
+
+// Specific eircode overrides for known locations
+const EIRCODE_SPECIFIC = {
+  'R51': [53.1577, -6.9092], // Kildare Town
+  'R51CD89': [53.1577, -6.9092], // AMOVE office, Kildare
 };
 
 function resolveCoords(input) {
   const s = input.trim().toLowerCase().replace(/\s+/g,' ');
   if (COORDS[s]) return COORDS[s];
   for (const [k,v] of Object.entries(COORDS)) { if (s.includes(k)||k.includes(s)) return v; }
+  // Check specific eircode overrides first
+  const upper = input.trim().toUpperCase().replace(/\s+/g,'');
+  if (EIRCODE_SPECIFIC[upper]) return EIRCODE_SPECIFIC[upper];
+  // Check routing key prefix (e.g. R51)
+  const prefix = upper.slice(0,3);
+  if (EIRCODE_SPECIFIC[prefix]) return EIRCODE_SPECIFIC[prefix];
+  // Fall back to single routing letter
   const ec = input.trim().match(/^([A-Za-z])(\d{2})\s*[A-Za-z0-9]{4}$/i);
   if (ec) return EIRCODE[ec[1].toUpperCase()] || null;
   const rk = input.trim().match(/^([A-Za-z])\d{2}$/i);
@@ -471,69 +484,57 @@ function fallbackDistance(from, to) {
   return Math.round(haversine(c1,c2)*1.35*10)/10;
 }
 
-function setStatus(msg, type='', showSpinner=false) {
-  document.getElementById('status-msg').textContent = msg;
-  document.getElementById('status-msg').className = 'status-msg'+(type?' '+type:'');
-  document.getElementById('spinner').style.display = showSpinner ? 'inline-block' : 'none';
-}
 
-function onLocationInput() {
-  clearTimeout(calcTimer); previewKm = null;
-  const from = document.getElementById('from-input').value.trim();
-  const to = document.getElementById('to-input').value.trim();
-  if (!from||!to) { setStatus('Enter locations above to calculate distance'); return; }
-  setStatus('Calculating road distance…','loading',true);
-  calcTimer = setTimeout(() => calcDistance(), 600);
-}
 
-async function calcDistance() {
-  const waypoints = buildWaypoints();
-  if (waypoints.length < 2) { setStatus('Enter at least From and To locations','error'); return; }
-  const isReturn = document.getElementById('return-toggle').checked;
-  let km=null;
-  try {
-    km = await calcMultiLegDistance(waypoints);
-  } catch(e) {
-    setStatus('Location not recognised — try a town name or Eircode','error');
-    return;
-  }
-  if (!km) { setStatus('Location not recognised — try a town name or Eircode','error'); return; }
-  const display = isReturn ? km*2 : km;
-  previewKm = km;
-  const legs = waypoints.length - 1;
-  const legNote = legs > 1 ? ` · ${legs} legs` : '';
-  setStatus(`${fmtKm(display)}${isReturn?' (return)':''}${legNote} · ${fmtEur(display*rate)} at current rate`, 'success');
-}
+
 
 async function addTrip() {
-  const from=document.getElementById('from-input').value.trim();
-  const to=document.getElementById('to-input').value.trim();
-  const date=document.getElementById('date-input').value;
-  const isReturn=document.getElementById('return-toggle').checked;
-  if (!from||!to||!date) { setStatus('Please fill in all fields','error'); return; }
-  document.getElementById('add-btn').disabled = true;
-  let km = previewKm;
-  if (!km) {
-    setStatus('Calculating…','loading',true);
-    try { km = await getDistanceGoogle(from+', Ireland', to+', Ireland'); }
-    catch(e) { km = fallbackDistance(from, to); }
-  }
-  if (!km) { setStatus('Could not calculate distance — check locations','error'); document.getElementById('add-btn').disabled=false; return; }
+  const waypoints = buildWaypoints();
+  const from = document.getElementById('from-input').value.trim();
+  const to = document.getElementById('to-input').value.trim();
+  const date = document.getElementById('date-input').value;
+  const isReturn = document.getElementById('return-toggle').checked;
+  if (!from||!to||!date) { showAddError('Please fill in From, To and Date'); return; }
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true;
+  btn.innerHTML = 'Adding…';
+  let km;
+  try { km = await calcMultiLegDistance(waypoints); }
+  catch(e) { showAddError('Could not calculate distance — check locations'); resetAddBtn(); return; }
+  if (!km) { showAddError('Could not calculate distance — check locations'); resetAddBtn(); return; }
   const distance = isReturn ? Math.round(km*2*10)/10 : km;
+  const viaStops = getViaStops();
+  const routeLabel = buildRouteLabel(waypoints);
   try {
-    const saved = await saveTrip({ from, to, date, isReturn, distance, cost: Math.round(distance*rate*100)/100, rate });
+    const saved = await saveTrip({ from, to, viaStops, routeLabel, date, isReturn, distance, cost: Math.round(distance*rate*100)/100, rate });
     trips.unshift(saved);
-    document.getElementById('from-input').value='R51CD89';
-    document.getElementById('to-input').value='';
-    document.getElementById('return-toggle').checked=false;
-    document.getElementById('date-input').value=todayISO();
-document.getElementById('from-input').value='R51CD89';
-    previewKm=null;
-    setStatus('Trip saved','success');
+    document.getElementById('from-input').value = 'R51CD89';
+    document.getElementById('to-input').value = '';
+    document.getElementById('return-toggle').checked = true;
+    clearViaStops();
+    document.getElementById('date-input').value = todayISO();
     render();
-  } catch(e) { setStatus('Error saving trip — please try again','error'); }
-  document.getElementById('add-btn').disabled=false;
+  } catch(e) { showAddError('Error saving trip — please try again'); }
+  resetAddBtn();
 }
+
+function resetAddBtn() {
+  const btn = document.getElementById('add-btn');
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Add';
+}
+
+function showAddError(msg) {
+  const existing = document.getElementById('add-error');
+  if (existing) existing.remove();
+  const err = document.createElement('div');
+  err.id = 'add-error';
+  err.style.cssText = 'font-size:12px;color:var(--danger);font-weight:500;margin-top:8px;';
+  err.textContent = msg;
+  document.querySelector('.add-form').appendChild(err);
+  setTimeout(() => err.remove(), 4000);
+}
+
 
 async function deleteTrip(id) {
   if (!confirm('Remove this trip?')) return;
@@ -640,9 +641,7 @@ async function saveRate() {
 
 document.getElementById('date-input').value=todayISO();
 document.getElementById('from-input').value='R51CD89';
-document.getElementById('from-input').addEventListener('input',onLocationInput);
-document.getElementById('to-input').addEventListener('input',onLocationInput);
-document.getElementById('return-toggle').addEventListener('change',()=>{ if(document.getElementById('from-input').value&&document.getElementById('to-input').value) onLocationInput(); });
+
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
 init();
