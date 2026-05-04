@@ -105,16 +105,19 @@
   .month-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--accent); border-radius: var(--radius-sm); margin-bottom: 6px; }
   .month-name { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: rgba(255,255,255,0.9); text-transform: uppercase; }
   .month-totals { display: flex; gap: 16px; font-size: 12px; font-family: 'DM Mono', monospace; }
-  .month-totals span { color: rgba(255,255,255,0.6); }
-  .month-totals strong { color: #fff; font-weight: 700; }
+  .month-totals .tot-km { color: #fff; font-weight: 700; }
+  .month-totals .tot-cost { color: rgba(255,255,255,0.6); font-weight: 400; }
   .trip-row { display: grid; grid-template-columns: 1fr 100px 80px 80px 34px; gap: 8px; align-items: center; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 5px; transition: border-color 0.1s, box-shadow 0.1s; }
   .trip-row:hover { border-color: var(--accent-mid); box-shadow: 0 1px 4px rgba(0,172,200,0.1); }
   .trip-route { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
   .trip-meta { font-size: 11px; color: var(--ink3); margin-top: 2px; display: flex; gap: 6px; align-items: center; }
   .return-tag { font-size: 10px; background: var(--accent-light); color: var(--accent); padding: 1px 6px; border-radius: 8px; font-weight: 700; }
   .trip-date-col { font-size: 11px; color: var(--ink3); font-family: 'DM Mono', monospace; }
-  .trip-dist { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--ink2); text-align: right; }
-  .trip-cost { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--accent); font-weight: 600; text-align: right; }
+  .trip-dist { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--accent); font-weight: 600; text-align: right; }
+  .trip-cost { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--ink3); text-align: right; }
+  .trip-leg-breakdown { font-size: 11px; color: var(--ink3); margin-top: 3px; font-family: 'DM Mono', monospace; line-height: 1.6; }
+  .trip-leg-line { display: flex; align-items: center; gap: 4px; }
+  .trip-leg-line::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-mid); flex-shrink: 0; }
   .del-btn { background: none; border: none; cursor: pointer; color: var(--ink3); font-size: 18px; line-height: 1; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: color 0.1s, background 0.1s; }
   .del-btn:hover { color: var(--danger); background: var(--danger-light); }
   .empty-state { text-align: center; padding: 3rem 1rem; color: var(--ink3); }
@@ -151,6 +154,19 @@
   .add-via-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
   .via-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
   .via-label span { font-size: 9px; background: var(--surface2); color: var(--ink3); padding: 1px 6px; border-radius: 8px; font-weight: 600; letter-spacing: 0.04em; }
+
+
+  .edit-btn { background: none; border: none; cursor: pointer; color: var(--ink3); font-size: 14px; line-height: 1; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: color 0.1s, background 0.1s; }
+  .edit-btn:hover { color: var(--accent); background: var(--accent-light); }
+  .trip-actions { display: flex; gap: 2px; }
+  .edit-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .edit-modal-grid .field { margin-bottom: 0; }
+  .edit-via-section { margin-bottom: 12px; }
+  .edit-via-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .edit-via-row input { width: 100%; background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: 'Montserrat', sans-serif; color: var(--ink); outline: none; height: 34px; font-weight: 500; }
+  .edit-via-row input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--accent-light); }
+  .edit-modal-sub { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink3); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+  .edit-add-via { font-size: 11px; color: var(--accent); background: none; border: none; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 600; padding: 0; }
 
   @media (max-width: 640px) {
     .form-grid { grid-template-columns: 1fr 1fr; }
@@ -219,13 +235,13 @@
     <div class="stats-row">
       <div class="stat-card">
         <div class="stat-label">This month</div>
-        <div class="stat-value accent" id="stat-month-cost">€0.00</div>
-        <div class="stat-sub" id="stat-month-km">0 km</div>
+        <div class="stat-value accent" id="stat-month-km">0 km</div>
+        <div class="stat-sub" id="stat-month-cost">€0.00</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">This year</div>
-        <div class="stat-value" id="stat-year-cost">€0.00</div>
-        <div class="stat-sub" id="stat-year-km">0 km</div>
+        <div class="stat-value" id="stat-year-km">0 km</div>
+        <div class="stat-sub" id="stat-year-cost">€0.00</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Total trips</div>
@@ -400,6 +416,7 @@ async function saveTrip(trip) {
     to_location: trip.to,
     via_stops: trip.viaStops || [],
     route_label: trip.routeLabel || (trip.from + ' → ' + trip.to),
+    leg_distances: trip.legDistances || [],
     date: trip.date,
     is_return: trip.isReturn,
     distance_km: trip.distance,
@@ -527,19 +544,21 @@ function buildWaypoints() {
 
 async function calcMultiLegDistance(waypoints) {
   let total = 0;
+  const legs = [];
   for (let i = 0; i < waypoints.length - 1; i++) {
     const origin = waypoints[i] + ', Ireland';
     const dest = waypoints[i+1] + ', Ireland';
+    let km;
     try {
-      const km = await getDistanceGoogle(origin, dest);
-      total += km;
+      km = await getDistanceGoogle(origin, dest);
     } catch(e) {
-      const km = fallbackDistance(waypoints[i], waypoints[i+1]);
+      km = fallbackDistance(waypoints[i], waypoints[i+1]);
       if (!km) throw new Error(`Could not calculate: ${waypoints[i]} to ${waypoints[i+1]}`);
-      total += km;
     }
+    legs.push(Math.round(km * 10) / 10);
+    total += km;
   }
-  return Math.round(total * 10) / 10;
+  return { total: Math.round(total * 10) / 10, legs };
 }
 
 function buildRouteLabel(waypoints) {
@@ -558,15 +577,17 @@ async function addTrip() {
   const btn = document.getElementById('add-btn');
   btn.disabled = true;
   btn.innerHTML = 'Adding…';
-  let km;
-  try { km = await calcMultiLegDistance(waypoints); }
+  let calcResult;
+  try { calcResult = await calcMultiLegDistance(waypoints); }
   catch(e) { showAddError('Could not calculate distance — check locations'); resetAddBtn(); return; }
-  if (!km) { showAddError('Could not calculate distance — check locations'); resetAddBtn(); return; }
-  const distance = isReturn ? Math.round(km*2*10)/10 : km;
+  if (!calcResult) { showAddError('Could not calculate distance — check locations'); resetAddBtn(); return; }
+  const { total: baseKm, legs: legDistances } = calcResult;
+  const distance = isReturn ? Math.round(baseKm*2*10)/10 : baseKm;
+  const legDists = isReturn ? legDistances.map(l => Math.round(l*2*10)/10) : legDistances;
   const viaStops = getViaStops();
   const routeLabel = buildRouteLabel(waypoints);
   try {
-    const saved = await saveTrip({ from, to, viaStops, routeLabel, date, isReturn, distance, cost: Math.round(distance*rate*100)/100, rate });
+    const saved = await saveTrip({ from, to, viaStops, routeLabel, legDistances: legDists, date, isReturn, distance, cost: Math.round(distance*rate*100)/100, rate });
     trips.unshift(saved);
     document.getElementById('from-input').value = 'R51CD89';
     document.getElementById('to-input').value = '';
@@ -631,10 +652,10 @@ function updateStats() {
   const thisYear=String(now.getFullYear());
   const mT=trips.filter(t=>t.date.startsWith(thisMonth));
   const yT=trips.filter(t=>t.date.startsWith(thisYear));
-  document.getElementById('stat-month-cost').textContent=fmtEur(mT.reduce((s,t)=>s+t.cost,0));
   document.getElementById('stat-month-km').textContent=fmtKm(mT.reduce((s,t)=>s+t.distance_km,0));
-  document.getElementById('stat-year-cost').textContent=fmtEur(yT.reduce((s,t)=>s+t.cost,0));
+  document.getElementById('stat-month-cost').textContent=fmtEur(mT.reduce((s,t)=>s+t.cost,0));
   document.getElementById('stat-year-km').textContent=fmtKm(yT.reduce((s,t)=>s+t.distance_km,0));
+  document.getElementById('stat-year-cost').textContent=fmtEur(yT.reduce((s,t)=>s+t.cost,0));
   document.getElementById('stat-trips').textContent=trips.length;
 }
 
@@ -660,25 +681,36 @@ function renderTrips() {
     return `<div class="month-group">
       <div class="month-header">
         <span class="month-name">${monthLabel(mk)}</span>
-        <span class="month-totals"><span>${fmtKm(totKm)}</span><strong>${fmtEur(totCost)}</strong></span>
+        <span class="month-totals"><span class="tot-km">${fmtKm(totKm)}</span><span class="tot-cost">${fmtEur(totCost)}</span></span>
       </div>
       ${g.map(t=>{
         const d=new Date(t.date+'T00:00:00');
         const ds=d.toLocaleDateString('en-IE',{day:'numeric',month:'short'});
         const label = t.route_label || (t.from_location + ' → ' + t.to_location);
-        const hasVia = t.via_stops && t.via_stops.length > 0;
-        return `<div class="trip-row">
+        const viaStops = t.via_stops || [];
+        const hasVia = viaStops.length > 0;
+        // Build waypoints for leg breakdown display
+        const waypoints = [t.from_location, ...viaStops, t.to_location];
+        const legBreakdown = hasVia && t.leg_distances && t.leg_distances.length
+          ? t.leg_distances.map((km, i) =>
+              `<div class="trip-leg-line">${esc(waypoints[i])} → ${esc(waypoints[i+1])}: ${fmtKm(km)}</div>`
+            ).join('')
+          : '';
+        return `<div class="trip-row" style="grid-template-columns:1fr 90px 70px 60px auto">
           <div>
             <div class="trip-route">${esc(label)}</div>
             <div class="trip-meta">
-              ${hasVia ? `<span class="return-tag">${t.via_stops.length} via</span>` : ''}
               ${t.is_return ? '<span class="return-tag">Return</span>' : ''}
             </div>
+            ${legBreakdown ? `<div class="trip-leg-breakdown">${legBreakdown}</div>` : ''}
           </div>
           <div class="trip-date-col">${ds}</div>
           <div class="trip-dist">${fmtKm(t.distance_km)}</div>
           <div class="trip-cost">${fmtEur(t.cost)}</div>
-          <button class="del-btn" onclick="deleteTrip('${t.id}')" title="Remove">&times;</button>
+          <div class="trip-actions">
+            <button class="edit-btn" onclick="openEditModal(${JSON.stringify(t).replace(/"/g,'&quot;')})" title="Edit">&#9998;</button>
+            <button class="del-btn" onclick="deleteTrip('${t.id}')" title="Remove">&times;</button>
+          </div>
         </div>`;
       }).join('')}
     </div>`;
@@ -704,7 +736,139 @@ document.getElementById('from-input').value='R51CD89';
 
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
+// ── Edit trip ─────────────────────────────────────────────────────────
+function openEditModal(trip) {
+  document.getElementById('edit-trip-id').value = trip.id;
+  document.getElementById('edit-from').value = trip.from_location || '';
+  document.getElementById('edit-to').value = trip.to_location || '';
+  document.getElementById('edit-date').value = trip.date || '';
+  document.getElementById('edit-return').checked = trip.is_return || false;
+  document.getElementById('edit-error').textContent = '';
+  const container = document.getElementById('edit-via-stops');
+  container.innerHTML = '';
+  (trip.via_stops || []).forEach(stop => addEditViaStop(stop));
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+}
+
+function handleEditModalClick(e) {
+  if (e.target === e.currentTarget) closeEditModal();
+}
+
+function addEditViaStop(value) {
+  value = value || '';
+  const container = document.getElementById('edit-via-stops');
+  const idx = container.children.length + 1;
+  const row = document.createElement('div');
+  row.className = 'edit-via-row';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'edit-via-input';
+  input.placeholder = 'Via stop ' + idx;
+  input.autocomplete = 'off';
+  input.value = value;
+  const btn = document.createElement('button');
+  btn.className = 'remove-via-btn';
+  btn.innerHTML = '&times;';
+  btn.title = 'Remove';
+  btn.onclick = function() { row.remove(); };
+  row.appendChild(input);
+  row.appendChild(btn);
+  container.appendChild(row);
+}
+
+function getEditViaStops() {
+  return Array.from(document.querySelectorAll('.edit-via-input'))
+    .map(i => i.value.trim()).filter(Boolean);
+}
+
+async function saveEditTrip() {
+  const id = document.getElementById('edit-trip-id').value;
+  const from = document.getElementById('edit-from').value.trim();
+  const to = document.getElementById('edit-to').value.trim();
+  const date = document.getElementById('edit-date').value;
+  const isReturn = document.getElementById('edit-return').checked;
+  const viaStops = getEditViaStops();
+  const errEl = document.getElementById('edit-error');
+  errEl.textContent = '';
+  if (!from || !to || !date) { errEl.textContent = 'Please fill in From, To and Date.'; return; }
+  const btn = document.getElementById('edit-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const waypoints = [from, ...viaStops, to];
+  let calcResult;
+  try { calcResult = await calcMultiLegDistance(waypoints); }
+  catch(e) { errEl.textContent = 'Could not calculate distance — check locations.'; btn.disabled=false; btn.textContent='Save changes'; return; }
+  const { total: baseKm, legs: legDistances } = calcResult;
+  const distance = isReturn ? Math.round(baseKm*2*10)/10 : baseKm;
+  const legDists = isReturn ? legDistances.map(l => Math.round(l*2*10)/10) : legDistances;
+  const cost = Math.round(distance * rate * 100) / 100;
+  const { data, error } = await sb.from('trips').update({
+    from_location: from, to_location: to,
+    via_stops: viaStops,
+    route_label: buildRouteLabel(waypoints),
+    leg_distances: legDists,
+    date, is_return: isReturn,
+    distance_km: distance, cost, rate_used: rate,
+  }).eq('id', id).select().single();
+  if (error) { errEl.textContent = 'Error saving — please try again.'; btn.disabled=false; btn.textContent='Save changes'; return; }
+  const idx = trips.findIndex(t => t.id === id);
+  if (idx !== -1) trips[idx] = data;
+  closeEditModal();
+  render();
+  btn.disabled=false; btn.textContent='Save changes';
+}
+
+
 init();
 </script>
+
+<!-- Edit trip modal -->
+<div class="modal-bg" id="edit-modal" onclick="handleEditModalClick(event)">
+  <div class="modal" style="width:420px">
+    <h2>Edit trip</h2>
+    <p class="modal-sub">Update the details for this trip. Distance will be recalculated.</p>
+    <input type="hidden" id="edit-trip-id">
+    <div class="edit-modal-grid">
+      <div class="field">
+        <label>From</label>
+        <input type="text" id="edit-from" placeholder="e.g. Dublin or R51CD89" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>To</label>
+        <input type="text" id="edit-to" placeholder="e.g. Cork or T12 AB34" autocomplete="off">
+      </div>
+    </div>
+    <div class="edit-via-section">
+      <div class="edit-modal-sub">
+        Via stops
+        <button class="edit-add-via" onclick="addEditViaStop()">+ Add stop</button>
+      </div>
+      <div id="edit-via-stops"></div>
+    </div>
+    <div class="edit-modal-grid">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="field" style="display:flex;align-items:center;gap:10px;padding-top:20px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--ink2);font-weight:500;text-transform:none;letter-spacing:0;">
+          <span class="toggle">
+            <input type="checkbox" id="edit-return">
+            <span class="toggle-slider"></span>
+          </span>
+          Return trip
+        </label>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-sec" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-pri" id="edit-save-btn" onclick="saveEditTrip()">Save changes</button>
+    </div>
+    <div id="edit-error" style="font-size:12px;color:var(--danger);margin-top:10px;min-height:16px;font-weight:500;"></div>
+  </div>
+</div>
 </body>
 </html>
