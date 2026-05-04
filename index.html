@@ -144,6 +144,19 @@
   .btn-pri { background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 12px; font-family: 'Montserrat', sans-serif; font-weight: 700; cursor: pointer; color: #fff; text-transform: uppercase; letter-spacing: 0.03em; }
   .btn-pri:hover { background: var(--accent-dark); }
 
+
+  .via-section { margin-top: 10px; }
+  .via-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .via-row input { width: 100%; background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: 'Montserrat', sans-serif; color: var(--ink); outline: none; height: 36px; font-weight: 500; transition: border-color 0.15s, box-shadow 0.15s; }
+  .via-row input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px var(--accent-light); }
+  .via-row input::placeholder { color: var(--ink3); font-weight: 400; }
+  .remove-via-btn { width: 28px; height: 28px; background: none; border: 1px solid var(--border-strong); border-radius: 50%; cursor: pointer; color: var(--ink3); font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+  .remove-via-btn:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-light); }
+  .add-via-btn { display: inline-flex; align-items: center; gap: 5px; background: none; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 11px; font-weight: 600; color: var(--ink3); cursor: pointer; font-family: 'Montserrat', sans-serif; letter-spacing: 0.03em; text-transform: uppercase; transition: all 0.15s; margin-top: 2px; }
+  .add-via-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .via-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .via-label span { font-size: 9px; background: var(--surface2); color: var(--ink3); padding: 1px 6px; border-radius: 8px; font-weight: 600; letter-spacing: 0.04em; }
+
   @media (max-width: 640px) {
     .form-grid { grid-template-columns: 1fr 1fr; }
     .stats-row { grid-template-columns: 1fr 1fr; }
@@ -165,8 +178,7 @@
 <div class="login-wrap" id="login-screen" style="display:none">
   <div class="login-card">
     <div class="login-brand">
-      <div class="login-logo">A</div>
-      <span class="login-brand-name">Amove</span>
+      <img src="data:image/png;base64,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" alt="AMOVE" style="height:64px;border-radius:8px;display:block;">
     </div>
     <div class="login-title">Mileage Logger</div>
     <div class="login-sub">Sign in to your account</div>
@@ -188,8 +200,7 @@
 <div class="app" id="app">
   <div class="topbar">
     <div class="brand">
-      <div class="brand-logo">A</div>
-      <span class="brand-name">Amove</span>
+      <img src="data:image/png;base64,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" alt="AMOVE" style="height:36px;border-radius:4px;display:block;">
       <span class="brand-divider"></span>
       <span class="brand-sub">Mileage Logger</span>
     </div>
@@ -235,7 +246,7 @@
       <div class="form-grid">
         <div class="form-group">
           <label>From</label>
-          <input type="text" id="from-input" placeholder="e.g. Dublin or D02 XY00" autocomplete="off">
+          <input type="text" id="from-input" placeholder="e.g. Dublin or R51CD89" autocomplete="off">
         </div>
         <div class="form-group">
           <label>To</label>
@@ -248,6 +259,14 @@
         <button class="add-btn" id="add-btn" onclick="addTrip()">
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           Add
+        </button>
+      </div>
+      <div class="via-section">
+        <div class="via-label">Via stops <span>optional</span></div>
+        <div id="via-stops"></div>
+        <button class="add-via-btn" onclick="addViaStop()">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Add via stop
         </button>
       </div>
       <div class="return-toggle-wrap">
@@ -280,7 +299,7 @@
     </div>
     <div class="rate-input-wrap">
       <span class="rate-symbol">€</span>
-      <input type="number" id="rate-input" step="0.0001" min="0.01" max="5" placeholder="0.2848">
+      <input type="number" id="rate-input" step="0.0001" min="0.01" max="5" placeholder="0.5182">
       <span class="rate-unit">per km</span>
     </div>
     <div class="modal-btns">
@@ -295,7 +314,7 @@ const SUPABASE_URL = 'https://udjozciqjtmjfojerulm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkam96Y2lxanRtamZvamVydWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDM4MTMsImV4cCI6MjA5MzQ3OTgxM30.xGgAiMEN0KEUqhFejcAlmEdPt7B7cY_xNBft1zTV1C4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentUser = null, trips = [], rate = 0.2848, calcTimer = null, previewKm = null;
+let currentUser = null, trips = [], rate = 0.5182, calcTimer = null, previewKm = null;
 
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
@@ -370,7 +389,7 @@ document.getElementById('login-password').addEventListener('keydown', e => { if 
 async function loadRate() {
   const { data: { user } } = await sb.auth.getUser();
   const r = user?.user_metadata?.mileage_rate;
-  if (r && r > 0) rate = r;
+  if (r && r > 0) rate = r; else rate = 0.5182;
 }
 
 async function persistRate() {
@@ -387,6 +406,8 @@ async function saveTrip(trip) {
     user_id: currentUser.id,
     from_location: trip.from,
     to_location: trip.to,
+    via_stops: trip.viaStops || [],
+    route_label: trip.routeLabel || (trip.from + ' → ' + trip.to),
     date: trip.date,
     is_return: trip.isReturn,
     distance_km: trip.distance,
@@ -462,18 +483,26 @@ function onLocationInput() {
   const to = document.getElementById('to-input').value.trim();
   if (!from||!to) { setStatus('Enter locations above to calculate distance'); return; }
   setStatus('Calculating road distance…','loading',true);
-  calcTimer = setTimeout(() => calcDistance(from,to), 600);
+  calcTimer = setTimeout(() => calcDistance(), 600);
 }
 
-async function calcDistance(from, to) {
+async function calcDistance() {
+  const waypoints = buildWaypoints();
+  if (waypoints.length < 2) { setStatus('Enter at least From and To locations','error'); return; }
   const isReturn = document.getElementById('return-toggle').checked;
-  let km=null, method='';
-  try { km = await getDistanceGoogle(from+', Ireland', to+', Ireland'); method='road distance'; }
-  catch(e) { km = fallbackDistance(from, to); method='estimated'; }
+  let km=null;
+  try {
+    km = await calcMultiLegDistance(waypoints);
+  } catch(e) {
+    setStatus('Location not recognised — try a town name or Eircode','error');
+    return;
+  }
   if (!km) { setStatus('Location not recognised — try a town name or Eircode','error'); return; }
   const display = isReturn ? km*2 : km;
   previewKm = km;
-  setStatus(`${fmtKm(display)}${isReturn?' (return)':''} · ${fmtEur(display*rate)} at current rate${method==='estimated'?' · estimated':''}`, 'success');
+  const legs = waypoints.length - 1;
+  const legNote = legs > 1 ? ` · ${legs} legs` : '';
+  setStatus(`${fmtKm(display)}${isReturn?' (return)':''}${legNote} · ${fmtEur(display*rate)} at current rate`, 'success');
 }
 
 async function addTrip() {
@@ -494,10 +523,11 @@ async function addTrip() {
   try {
     const saved = await saveTrip({ from, to, date, isReturn, distance, cost: Math.round(distance*rate*100)/100, rate });
     trips.unshift(saved);
-    document.getElementById('from-input').value='';
+    document.getElementById('from-input').value='R51CD89';
     document.getElementById('to-input').value='';
     document.getElementById('return-toggle').checked=false;
     document.getElementById('date-input').value=todayISO();
+document.getElementById('from-input').value='R51CD89';
     previewKm=null;
     setStatus('Trip saved','success');
     render();
@@ -574,8 +604,16 @@ function renderTrips() {
       ${g.map(t=>{
         const d=new Date(t.date+'T00:00:00');
         const ds=d.toLocaleDateString('en-IE',{day:'numeric',month:'short'});
+        const label = t.route_label || (t.from_location + ' → ' + t.to_location);
+        const hasVia = t.via_stops && t.via_stops.length > 0;
         return `<div class="trip-row">
-          <div><div class="trip-route">${esc(t.from_location)} &#8594; ${esc(t.to_location)}</div><div class="trip-meta">${t.is_return?'<span class="return-tag">Return</span>':''}</div></div>
+          <div>
+            <div class="trip-route">${esc(label)}</div>
+            <div class="trip-meta">
+              ${hasVia ? `<span class="return-tag">${t.via_stops.length} via</span>` : ''}
+              ${t.is_return ? '<span class="return-tag">Return</span>' : ''}
+            </div>
+          </div>
           <div class="trip-date-col">${ds}</div>
           <div class="trip-dist">${fmtKm(t.distance_km)}</div>
           <div class="trip-cost">${fmtEur(t.cost)}</div>
@@ -601,6 +639,7 @@ async function saveRate() {
 }
 
 document.getElementById('date-input').value=todayISO();
+document.getElementById('from-input').value='R51CD89';
 document.getElementById('from-input').addEventListener('input',onLocationInput);
 document.getElementById('to-input').addEventListener('input',onLocationInput);
 document.getElementById('return-toggle').addEventListener('change',()=>{ if(document.getElementById('from-input').value&&document.getElementById('to-input').value) onLocationInput(); });
